@@ -65,7 +65,7 @@ jobs:
           echo "Starting server..."
           cd refair-server
           nohup python app.py &    # Avvio in background
-          sleep 10                 # Attende che il server parta
+          sleep 30                 # Attende che il server parta
           ps aux | grep python
           curl -I http://localhost:5001  # Check se risponde su 5001
 
