@@ -75,7 +75,7 @@ jobs:
       # Step 10: Run SonarCloud Scan
       - name: Run SonarCloud Scan
         env:
-          SONAR_TOKEN: ${{ 11330d9ea889072b7e251477fd96df41cc50dd08 }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           mvn clean verify sonar:sonar \
           -Dsonar.projectKey=pastore99_ReFair-App \
