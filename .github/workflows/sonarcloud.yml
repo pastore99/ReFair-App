@@ -3,7 +3,7 @@ name: Full Pipeline (Server + Client + Sonar)
 on:
   push:
     branches:
-      - test_githubaction
+      - dev
   pull_request:
     types: [opened, synchronize, reopened]
 
