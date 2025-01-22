@@ -39,17 +39,18 @@ jobs:
           ls -R
 
       # Step 5: Avvia il server
-      - name: Start the server
+      - name: Start Flask server
         run: |
-          echo "Starting Flask server"
-          echo "Current directory: $(pwd)"
-          ls -l  # Controlla la struttura dei file
-          export PYTHONPATH=$(pwd)
+          echo "Starting Flask server (no cd, using --chdir)..."
+          pip install --upgrade pip
+          pip install -r refair-server/requirements.txt
+
+          # Indichiamo a Flask di lavorare dentro refair-server
           export FLASK_APP=refair_server.app
-          nohup python -m flask run --port=5001 --debug &  # Avvia Flask
-          sleep 10  # Attendi che il server si avvii
-          ps aux | grep flask  # Controlla se Flask è in esecuzione
-          curl -I http://localhost:5001  # Verifica se il server risponde
+          nohup python -m flask --debug run --port=5001 --chdir refair-server &
+          sleep 10
+          ps aux | grep flask
+          curl -I http://localhost:5001
 
       # Step 6: Attendi il server
       - name: Wait for server to start
