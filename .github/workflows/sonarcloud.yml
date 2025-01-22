@@ -32,24 +32,19 @@ jobs:
           sudo apt-get install -y chromium-chromedriver
           export PATH=$PATH:/usr/lib/chromium-browser/
 
-      # DEBUG - SEE FILE AND DIRECTORY
-      - name: List files and directories
-        run: |
-          echo "Current directory: $(pwd)"
-          ls -R
 
-      # Step 5: Avvia il server speriamo
+      #server start
       - name: Start Flask server
         run: |
-          echo "Starting Flask server (no cd, using --chdir)..."
-          pip install --upgrade pip
-          pip install -r refair-server/requirements.txt
-
-          # Indichiamo a Flask di lavorare dentro refair-server
-          export FLASK_APP=refair_server.app
-          nohup python -m flask --debug run --port=5001 --chdir refair-server &
-          sleep 10
+          echo "Starting Flask server..."
+          # Vai dentro la cartella dove ci sono app.py e requirements.txt
+          cd refair-server
+          # Dici a Flask che l'app è "app.py"
+          export FLASK_APP=app.py
+          nohup flask run --port=5001 --debug &
+          sleep 10  # attende che il server si avvii
           ps aux | grep flask
+          # Controlla se risponde su localhost:5001
           curl -I http://localhost:5001
 
       # Step 6: Attendi il server
