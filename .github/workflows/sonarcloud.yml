@@ -32,20 +32,17 @@ jobs:
           sudo apt-get install -y chromium-chromedriver
           export PATH=$PATH:/usr/lib/chromium-browser/
 
-
       #server start
-      - name: Start Flask server
+      - name: Start Flask server (python app.py)
         run: |
-          echo "Starting Flask server..."
-          # Vai dentro la cartella dove ci sono app.py e requirements.txt
+          echo "Starting server..."
           cd refair-server
-          # Dici a Flask che l'app è "app.py"
-          export FLASK_APP=app.py
-          nohup flask run --port=5001 --debug &
-          sleep 10  # attende che il server si avvii
-          ps aux | grep flask
-          # Controlla se risponde su localhost:5001
-          curl -I http://localhost:5001
+          # Se usi import local, puoi aggiungere: export PYTHONPATH=$PYTHONPATH:$(pwd)
+          nohup python app.py &  # Avvio in background
+          sleep 10               # Aspetta che il server parta
+          ps aux | grep python   # Controllo debug
+          curl -I http://localhost:5001  # Check HTTP 200/OK?
+      
 
       # Step 6: Attendi il server
       - name: Wait for server to start
