@@ -111,7 +111,7 @@ jobs:
         working-directory: ./refair-server
 
       - name: Unzip downloaded file
-        run: unzip ./downloads/glove6b100dtxt.zip -d ./refair-server/models
+        run: unzip ./downloads/glove6b100dtxt.zip -d models
         working-directory: ./refair-server
 
       - name: Install tox
