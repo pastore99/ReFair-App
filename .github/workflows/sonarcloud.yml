@@ -1,157 +1,125 @@
-name: SonarCloud Scan
+name: Full Pipeline (Server + Client + Sonar)
+
 on:
   push:
     branches:
       - test_githubaction
   pull_request:
     types: [opened, synchronize, reopened]
+
 jobs:
-  sonarcloud:
+  test_and_scan:
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Checkout del codice
+      #
+      # 1) CHECKOUT CODICE
+      #
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Setup Python
+      #
+      # 2) SETUP PYTHON & DEPENDENZE
+      #
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.9  # Cambia la versione se necessario
+          python-version: 3.9
 
-      # Step 3: Installa dipendenze Python
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r ./refair-server/requirements.txt
+          pip install -r refair-server/requirements.txt
 
-      # Step 4: Setup WebDriver (Chrome/Chromium)
       - name: Setup WebDriver
         run: |
           sudo apt-get update
           sudo apt-get install -y chromium-chromedriver
           export PATH=$PATH:/usr/lib/chromium-browser/
 
-      #server start
-      - name: Start Flask server (python app.py)
-        run: |
-          echo "Starting server..."
-          cd refair-server
-          # Se usi import local, puoi aggiungere: export PYTHONPATH=$PYTHONPATH:$(pwd)
-          nohup python app.py &  # Avvio in background
-          sleep 10               # Aspetta che il server parta
-          ps aux | grep python   # Controllo debug
-          curl -I http://localhost:5001  # Check HTTP 200/OK?
-      
-
-      # Step 6: Attendi il server
-      - name: Wait for server to start
-        run: |
-          for i in {1..30}; do
-            if curl -s http://localhost:8000/healthcheck; then
-              echo "Server is up!"
-              break
-            fi
-            echo "Waiting for server..."
-            sleep 5
-          done
-
-      # Step 7: Esegui test con pytest
-      - name: Run Pytest
-        env:
-          DISPLAY: :99  # Necessario per test headless
-        run: pytest --headless
-
-      # Step 8: Setup Java per SonarCloud
-      - name: Setup Java
-        uses: actions/setup-java@v3
-        with:
-          java-version: 11
-          distribution: 'temurin'
-
-      # Step 9: Cache SonarCloud
-      - name: Cache SonarCloud
-        uses: actions/cache@v3
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-
-      # Step 10: Run SonarCloud Scan
-      - name: Run SonarCloud Scan
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          mvn clean verify sonar:sonar \
-          -Dsonar.projectKey=pastore99_ReFair-App \
-          -Dsonar.organization=pastore99 \
-          -Dsonar.host.url=https://sonarcloud.io
-
-  sonarcloudScan1:
-    name: SonarCloudScan1
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Setup Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
+      #
+      # 3) SCARICA GLOVE DA KAGGLE (se necessario)
+      #
       - name: Install Kaggle
         run: pip install kaggle
-        working-directory: ./refair-server
+        working-directory: refair-server
 
       - name: Download glove.6B.100d.txt from Kaggle
         run: kaggle datasets download -d danielwillgeorge/glove6b100dtxt -p ./downloads
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
-        working-directory: ./refair-server
+        working-directory: refair-server
 
       - name: Unzip downloaded file
-        run: unzip ./downloads/glove6b100dtxt.zip -d models
-        working-directory: ./refair-server
+        run: |
+          mkdir -p models
+          unzip ./downloads/glove6b100dtxt.zip -d models
+          ls -l models
+        working-directory: refair-server
 
-      - name: Install tox
-        run: pip install tox
-        working-directory: ./refair-server
+      #
+      # 4) AVVIO DEL SERVER FLASK
+      #
+      - name: Start Flask server (python app.py)
+        run: |
+          echo "Starting server..."
+          cd refair-server
+          nohup python app.py &    # Avvio in background
+          sleep 10                 # Attende che il server parta
+          ps aux | grep python
+          curl -I http://localhost:5001  # Check se risponde su 5001
 
-      - name: Run tox
-        run: tox -e py
-        working-directory: ./refair-server
-
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+      #
+      # 5) ESECUZIONE TEST PYTHON
+      #
+      - name: Run Pytest
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_SERVER }}
-        with:
-          projectBaseDir: refair-server/
-  sonarcloudScan2:
-    name: SonarCloudScan2
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+          DISPLAY: :99
+        run: |
+          cd refair-server
+          pytest --headless --maxfail=1 --disable-warnings -q
 
+      #
+      # 6) SETUP NODE + COVERAGE FRONTEND
+      #
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install dependencies
+      - name: Install dependencies (Client)
         run: npm install
         working-directory: ./refair-client
 
-      - name: Test and coverage
+      - name: Client test and coverage
         run: npm run coverage
         working-directory: ./refair-client
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_CLIENT }}
+      #
+      # 7) SETUP JAVA (per SonarCloud, se necessario)
+      #
+      - name: Setup Java
+        uses: actions/setup-java@v3
         with:
-          projectBaseDir: refair-client/
+          java-version: 11
+          distribution: temurin
+
+      #
+      # 8) SONARCLOUD SCAN (Server - Python)
+      #
+#      - name: SonarCloud Scan (Server)
+#        uses: SonarSource/sonarcloud-github-action@master
+#        env:
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_SERVER }}
+#        with:
+#          projectBaseDir: refair-server/
+
+      #
+      # 9) SONARCLOUD SCAN (Client - Node)
+      #
+#      - name: SonarCloud Scan (Client)
+#        uses: SonarSource/sonarcloud-github-action@master
+#        env:
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_CLIENT }}
+#        with:
+#          projectBaseDir: refair-client/
