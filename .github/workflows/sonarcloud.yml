@@ -1,18 +1,94 @@
 name: SonarCloud Scan
 on:
   push:
-      branches:
+    branches:
       - main
   pull_request:
     types: [opened, synchronize, reopened]
 jobs:
+  sonarcloud:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout del codice
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9  # Cambia la versione se necessario
+
+      # Step 3: Installa dipendenze Python
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 4: Setup WebDriver (Chrome/Chromium)
+      - name: Setup WebDriver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-chromedriver
+          export PATH=$PATH:/usr/lib/chromium-browser/
+
+      # Step 5: Avvia il server
+      - name: Start the server
+        run: |
+          nohup python ../refair_server/app.py &
+        env:
+          VARIABLE1: value1
+          VARIABLE2: value2
+
+      # Step 6: Attendi il server
+      - name: Wait for server to start
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:8000/healthcheck; then
+              echo "Server is up!"
+              break
+            fi
+            echo "Waiting for server..."
+            sleep 5
+          done
+
+      # Step 7: Esegui test con pytest
+      - name: Run Pytest
+        env:
+          DISPLAY: :99  # Necessario per test headless
+        run: pytest --headless
+
+      # Step 8: Setup Java per SonarCloud
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: 11
+          distribution: 'temurin'
+
+      # Step 9: Cache SonarCloud
+      - name: Cache SonarCloud
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+
+      # Step 10: Run SonarCloud Scan
+      - name: Run SonarCloud Scan
+        env:
+          SONAR_TOKEN: ${{ 11330d9ea889072b7e251477fd96df41cc50dd08 }}
+        run: |
+          mvn clean verify sonar:sonar \
+          -Dsonar.projectKey=pastore99_ReFair-App \
+          -Dsonar.organization=pastore99 \
+          -Dsonar.host.url=https://sonarcloud.io
+
   sonarcloudScan1:
     name: SonarCloudScan1
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 0  
+          fetch-depth: 0
 
       - name: Setup Python 3.10
         uses: actions/setup-python@v4
@@ -54,8 +130,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 0  
-      
+          fetch-depth: 0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -71,7 +147,7 @@ jobs:
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
-        env: 
+        env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_CLIENT }}
         with:
           projectBaseDir: refair-client/
