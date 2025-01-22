@@ -35,7 +35,7 @@ jobs:
       # Step 5: Avvia il server
       - name: Start the server
         run: |
-          nohup python ../refair_server/app.py &
+          nohup python ./refair_server/app.py &
         env:
           VARIABLE1: value1
           VARIABLE2: value2
