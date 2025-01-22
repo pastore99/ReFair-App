@@ -77,7 +77,7 @@ jobs:
           DISPLAY: :99
         run: |
           cd refair-server
-          pytest --headless --maxfail=1 --disable-warnings -q
+          pytest --maxfail=1 --disable-warnings -q
 
       #
       # 6) SETUP NODE + COVERAGE FRONTEND
