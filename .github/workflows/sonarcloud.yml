@@ -38,7 +38,7 @@ jobs:
           echo "Current directory: $(pwd)"
           ls -R
 
-      # Step 5: Avvia il server
+      # Step 5: Avvia il server speriamo
       - name: Start Flask server
         run: |
           echo "Starting Flask server (no cd, using --chdir)..."
