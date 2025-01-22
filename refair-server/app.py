@@ -184,4 +184,4 @@ def allowed_file(filename):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(port=5001, debug=True)
