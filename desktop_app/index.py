@@ -5,12 +5,13 @@ from tkinter import messagebox
 import os
 import openpyxl
 import json
+import requests
 from PIL import Image, ImageTk
 
 from components.user_story_canvas import UserStoryCanvas
 from components.custom_messagebox import CustomMessageBox 
 from colors import COLORS 
-from domain_utils import getDomain, getMLTask, feature_extraction
+from domain_utils import getDomain, getMLTask
 
 # Variabili globali
 user_story_listbox = None
@@ -25,14 +26,14 @@ class RefairDesktopApp:
         self.root = root
         self.root.title("ReFair desktop app")
         self.root.geometry("1100x600")  # Dimensioni della finestra
-        self.root.iconbitmap('desktop_app/icons/bill_invoice_shop_icon.ico')
+        self.root.iconbitmap('icons/bill_invoice_shop_icon.ico')
 
         # Path all'icona (modifica il percorso se necessario)
-        icon_right_arrow_path = "desktop_app/icons/right_arrow_icon.png"
-        document_attach_outline_path = "desktop_app/icons/document-attach-outline.png"
-        cloud_download_outline_path = "desktop_app/icons/code-download-outline.png"
-        cloud_upload_outline_path = "desktop_app/icons/cloud-upload-outline.png"
-        analytics_outline_path = "desktop_app/icons/analytics-outline.png"
+        icon_right_arrow_path = "icons/right_arrow_icon.png"
+        document_attach_outline_path = "icons/document-attach-outline.png"
+        cloud_download_outline_path = "icons/code-download-outline.png"
+        cloud_upload_outline_path = "icons/cloud-upload-outline.png"
+        analytics_outline_path = "icons/analytics-outline.png"
 
         # Carica l'icona
         right_arrow_icon = Image.open(icon_right_arrow_path)
@@ -230,47 +231,35 @@ class RefairDesktopApp:
     def load_file(self):
         global user_stories, canvas_frame
 
-        if not file_path:
-            # Se non è stato selezionato alcun file valido, mostra un messaggio di errore
-            messagebox.showerror(title="Error", message="No .xlsx file selected")
-            return
-        
-        # Carica il file .xlsx
-        workbook = openpyxl.load_workbook(file_path)
-        sheet = workbook.active
-        
-        # Trova la colonna "User Story"
-        user_story_col = None
-        for col in sheet.iter_cols(1, sheet.max_column):
-            if col[0].value == "User Story":
-                user_story_col = col
-                break
-        
-        if user_story_col is None:
-            # Se la colonna "User Story" non esiste, mostra un messaggio di errore
-            messagebox.showerror(title="Error", message="The 'User Story' column has not been found")
-            return
+        try:
+            with open(file_path, 'rb') as file:
+                files = {'stories': (file_path.split("/")[-1], file, 'application/vnd.ms-excel')}
+                response = requests.post('http://localhost:8080/storiesload', files=files)
 
-        # Cancella eventuali user stories precedenti
-        user_stories.clear()
+            if response.status_code == 200:
+                user_stories.clear()
 
-        # Rimuovi il Frame precedente con il Canvas, se esiste
-        if canvas_frame is not None:
-            canvas_frame.destroy()
+                if canvas_frame is not None:
+                    canvas_frame.destroy()
 
-        # Aggiungi tutte le User Stories alla lista
-        for cell in user_story_col[1:]:  # Salta l'intestazione
-            user_stories.append(cell.value)
+                data = response.json()
+                if "stories" in data:
+                    stories = data["stories"]
+                    for story in stories:
+                        user_stories.append(story)
 
-        # Crea e posiziona la nuova lista custom UserStoryCanvas. 
-        # Ciò è necessario in quanto ogni elemento della lista è a sua volta composto da frame
-        canvas_frame = UserStoryCanvas(self.main_content, user_stories)
-        canvas_frame.grid(row=3, column=0, padx=10, pady=10, sticky='nsew')
+                    canvas_frame = UserStoryCanvas(self.main_content, user_stories)
+                    canvas_frame.grid(row=3, column=0, padx=10, pady=10, sticky='nsew')
 
-        # Configura le colonne e righe della griglia per l'espansione
-        self.main_content.grid_columnconfigure(0, weight=1)
-        self.main_content.grid_columnconfigure(1, weight=0)
-        self.main_content.grid_rowconfigure(3, weight=1)
+                    self.main_content.grid_columnconfigure(0, weight=1)
+                    self.main_content.grid_columnconfigure(1, weight=0)
+                    self.main_content.grid_rowconfigure(3, weight=1)
+                else:
+                    messagebox.showerror(title="Error", message="The 'User Story' column has not been found")
+            else:
+                messagebox.showerror(title="Error", message=f"Server responde with {response.status_code}")
+        except Exception as e:
+            messagebox.showerror(title="Error", message=f"Server unavailable: {e}")
 
     def save_as_json(self):
         if not user_stories:
@@ -282,6 +271,9 @@ class RefairDesktopApp:
         all_data = []
 
         for user_story in user_stories:
+
+
+
             predicted_domain = getDomain(user_story)
             predicted_task = getMLTask(user_story, predicted_domain)
             results = feature_extraction(predicted_domain, predicted_task)
@@ -310,10 +302,11 @@ class RefairDesktopApp:
     def analyze(self, user_story):
         # Chiama la funzione getDomain e aggiorna la label con il risultato
         predicted_domain = getDomain(user_story)
-        predicted_task = getMLTask(user_story, predicted_domain)
-        results = feature_extraction(predicted_domain, predicted_task)
-        # Richiamo il custom component strutturato come una messagebox a cui passo tutti i dati necessari
-        CustomMessageBox(root, predicted_domain, user_story, predicted_domain, results)
+        results = getMLTask(user_story, predicted_domain)
+
+        feauters_extracted = results["tasks_features"]
+
+        CustomMessageBox(root, predicted_domain, user_story, predicted_domain, feauters_extracted)
 
     def validate_entry(self, *args):
         entry_content = self.entry_us.get()
