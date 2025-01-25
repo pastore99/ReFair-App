@@ -271,33 +271,27 @@ class RefairDesktopApp:
         all_data = []
 
         for user_story in user_stories:
+            all_data.append(user_story)
 
+        data = {
+            "user_stories": all_data
+        }
 
-
-            predicted_domain = getDomain(user_story)
-            predicted_task = getMLTask(user_story, predicted_domain)
-            results = feature_extraction(predicted_domain, predicted_task)
-
-            # Organizza i dati per ogni User Story nello schema del primo JSON
-            data = {
-                "story": user_story,  # Cambiato da "user_story" a "story"
-                "domain": predicted_domain,  # Cambiato da "story_domain" a "domain"
-                "tasks": [predicted_task],  # Aggiunto campo "tasks" come lista
-                "features": results  # Cambiato da "sensitive_features" a "features"
-            }
-            all_data.append(data)
-
-        # Permette di salvare il file JSON con un nome specifico
-        file_path = filedialog.asksaveasfilename(defaultextension=".json",
-                                                filetypes=[("JSON files", "*.json"),
-                                                            ("All files", ".")])
-
-        if file_path:
-            # Salva tutti i dati in un file JSON
-            with open(file_path, 'w') as json_file:
-                json.dump(all_data, json_file, indent=4)
-            messagebox.showinfo("Success", "Results have been downloaded successfully!")
-
+        try:
+            response = requests.post('http://localhost:8080/storiesload', json=json.dumps(data, indent=4))
+            if response.status_code == 200:
+                file_path_tosave = filedialog.asksaveasfilename(defaultextension=".json",
+                                                         filetypes=[("JSON files", "*.json"),
+                                                                    ("All files", ".")])
+                if file_path_tosave:
+                    # Salva tutti i dati in un file JSON
+                    with open(file_path_tosave, 'w') as json_file:
+                        json.dump(response.json(), json_file, indent=4)
+                    messagebox.showinfo("Success", "Results have been downloaded successfully!")
+            else:
+                messagebox.showerror(title="Error", message=f"Server unavailable: {response.status_code}")
+        except Exception as e:
+            messagebox.showerror(title="Error", message=f"Server unavailable: {e}")
 
     def analyze(self, user_story):
         # Chiama la funzione getDomain e aggiorna la label con il risultato
