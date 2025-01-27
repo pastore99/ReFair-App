@@ -2,9 +2,9 @@ import tkinter as tk
 from tkinter import Scrollbar, Canvas, Frame, Label, Button
 from tkinter import messagebox
 
-from components.custom_messagebox import CustomMessageBox 
-from domain_utils import getDomain, getMLTask, feature_extraction
+from components.custom_messagebox import CustomMessageBox
 
+from domain_utils import getDomain, getMLTask
 
 
 class UserStoryCanvas(Frame):
@@ -52,7 +52,8 @@ class UserStoryCanvas(Frame):
     def analyze(self, user_story):
         # Chiama la funzione getDomain e aggiorna la label con il risultato
         predicted_domain = getDomain(user_story)
-        predicted_task = getMLTask(user_story, predicted_domain)
-        results = feature_extraction(predicted_domain, predicted_task)
-        # Richiamo il custom component strutturato come una messagebox a cui passo tutti i dati necessari
-        CustomMessageBox(self, predicted_domain, user_story, predicted_domain, results)
+        results = getMLTask(user_story, predicted_domain)
+
+        feauters_extracted = results["tasks_features"]
+
+        CustomMessageBox(self, predicted_domain, user_story, predicted_domain, feauters_extracted)
