@@ -463,7 +463,7 @@ import SelectButton from "./SelectButton.vue";
 import ButtonComponent from "./ButtonComponent.vue";
 import SidebarLinkComponent from "./SidebarLinkComponent.vue";
 
-const server = "http://localhost:5001";
+const server = "http://localhost:8080";
 
 export default {
   components: {
@@ -516,7 +516,7 @@ export default {
       formData.append("stories", JSON.stringify(this.stories));
 
       axios
-        .post(server + "/reportStories", formData, {
+        .post(server + "/generate/report", formData, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
@@ -540,7 +540,7 @@ export default {
       formData.append("story", JSON.stringify(this.story));
 
       axios
-        .post(server + "/reportStory", formData, {
+        .post(server + "/generate/report", formData, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
@@ -600,7 +600,7 @@ export default {
         formData.append("story", this.story);
 
         axios
-          .post(server + "/analyzeStory", formData, {
+          .post(server + "/predict/tasks", formData, {
             headers: {
               "Content-Type": "multipart/form-data",
             },
