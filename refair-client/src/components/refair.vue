@@ -433,7 +433,11 @@
             <div v-else class="pt-3 mx-4">No sensitive features suggested</div>
           </div>
           <div class="modal-footer">
-            <!-- Download Button-->
+            <!-- Pulsante per aprire la Modal -->
+                <button class="btn btn-primary mt-5" @click="showRatingModal">
+                  Valuta
+                </button>
+
             <ButtonComponent
               buttonType="button"
               buttonClass="button report"
@@ -448,6 +452,58 @@
       </div>
     </div>
     <div v-if="activeAnalyzeStoryModal" class="modal-backdrop fade show"></div>
+
+    <!-- Modal per il Rating -->
+    <div
+      v-if="activeRatingModal"
+      class="modal-backdrop fade show"
+      @click="closeRatingModal"
+    ></div>
+    <div
+      v-if="activeRatingModal"
+      class="modal"
+      tabindex="-1"
+      role="dialog"
+      style="display: block;"
+    >
+      <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Rate this Story</h5>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              @click="closeRatingModal"
+            ></button>
+          </div>
+          <div class="modal-body text-center">
+            <!-- Sistema di Rating -->
+            <div class="rating-container">
+              <span
+                v-for="star in 5"
+                :key="star"
+                class="rating-star"
+                :class="{ 'selected-star': rating >= star }"
+                @click="setRating(star)"
+              >
+                ★
+              </span>
+            </div>
+            <p class="mt-3">You selected: {{ rating }} star(s)</p>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-primary"
+              @click="submitRating"
+            >
+              Submit
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -503,6 +559,9 @@ export default {
       storiesPerPage: 30, // Number of user stories per page
       fileLoaded: false, // Variable to track if a file has been loaded
       currentPageInput: 1, // Variable to track the user's input for the page number
+      activeRatingModal: false, // Controlla lo stato della modal
+      rating: 0, // Valore del rating selezionato
+      story: "Example User Story", // Esempio di storia
     };
   },
   methods: {
@@ -596,29 +655,47 @@ export default {
     toggleAnalyzeStoryModal(story) {
       if (story) {
         this.story = story;
-        let formData = new FormData();
-        formData.append("story", this.story);
 
+        // Prima chiamata: /predict/domain
         axios
-          .post(server + "/predict/tasks", formData, {
+          .post(server + "/predict/domain", { user_story: this.story }, {
             headers: {
-              "Content-Type": "multipart/form-data",
+              "Content-Type": "application/json",
             },
           })
-          .then((res) => {
-            this.story_domain = res.data.domain;
-            this.story_tasks = res.data.tasks_features;
+          .then((domainRes) => {
+            // Salva il dominio ottenuto
+            const domain = domainRes.data.domain;
+            this.story_domain = domain;
 
-            console.log(this.story_tasks);
+            console.log("Dominio ottenuto:", domain);
+
+            // Seconda chiamata: /predict/tasks
+            let formData = new FormData();
+            formData.append("user_story", this.story);
+            formData.append("domain", domain);
+
+            return axios.post(server + "/predict/tasks", formData, {
+              headers: {
+                "Content-Type": "application/json", // Cambia il content-type per la seconda chiamata
+              },
+            });
+          })
+          .then((tasksRes) => {
+            // Salva i dati ottenuti dalla seconda chiamata
+            this.story_tasks = tasksRes.data.tasks_features;
+
+            console.log("Task ottenuti:", this.story_tasks);
+
             const body = document.querySelector("body");
             this.activeAnalyzeStoryModal = !this.activeAnalyzeStoryModal;
 
             var data = [];
 
-            Object.keys(res.data.features_counts).forEach(function (key) {
+            Object.keys(tasksRes.data.features_counts).forEach(function (key) {
               data.push({
                 x: key,
-                y: [res.data.features_counts[key]],
+                y: [tasksRes.data.features_counts[key]],
               });
             });
 
@@ -636,9 +713,55 @@ export default {
             }
           })
           .catch((error) => {
-            console.error(error);
+            // Gestisci eventuali errori
+            console.error("Errore durante le chiamate:", error);
           });
       }
+    },
+
+    showRatingModal() {
+      console.log("Opening rating modal..."); // Debug per verificare
+      this.activeRatingModal = true;
+    },
+
+    // Chiude la modal
+    closeRatingModal() {
+      console.log("Closing rating modal..."); // Debug per verificare
+      this.activeRatingModal = false;
+      this.rating = 0; // Resetta il rating
+    },
+
+    // Imposta il valore del rating
+    setRating(star) {
+      console.log(`Setting rating to ${star} stars`); // Debug
+      this.rating = star;
+    },
+
+    // Invia il rating al server
+    submitRating() {
+      if (this.rating === 0) {
+        alert("Please select a rating before submitting!");
+        return;
+      }
+
+      const payload = {
+        story: this.story,
+        rating: this.rating,
+      };
+
+      console.log("Submitting rating:", payload); // Debug
+
+      axios
+        .post("http://localhost:8080/submit-rating", payload)
+        .then((response) => {
+          console.log("Rating submitted successfully:", response.data);
+          alert("Rating submitted successfully!");
+          this.closeRatingModal();
+        })
+        .catch((error) => {
+          console.error("Error submitting rating:", error);
+          alert("An error occurred while submitting the rating.");
+        });
     },
 
     // Pagination
@@ -712,3 +835,34 @@ document.addEventListener("DOMContentLoaded", () => {
   fileInput.addEventListener("change", handleStoriesUpload);
 });
 </script>
+
+<style>
+.rating-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  font-size: 2rem;
+  cursor: pointer;
+}
+
+.rating-star {
+  color: #ccc;
+  transition: color 0.2s;
+}
+
+.rating-star:hover,
+.rating-star.selected-star {
+  color: #ffca28;
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+}
+</style>
