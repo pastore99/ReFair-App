@@ -433,10 +433,14 @@
             <div v-else class="pt-3 mx-4">No sensitive features suggested</div>
           </div>
           <div class="modal-footer">
-            <!-- Pulsante per aprire la Modal -->
-                <button class="btn btn-primary mt-5" @click="showRatingModal">
-                  Valuta
-                </button>
+            <ButtonComponent
+              :clickHandler="showRatingModal"
+              buttonType="button"
+              buttonClass="button rating"
+              iconName="star-outline"
+              labelClass="button__text"
+              labelText="Valuta"
+            />
 
             <ButtonComponent
               buttonType="button"
@@ -493,13 +497,14 @@
             <p class="mt-3">You selected: {{ rating }} star(s)</p>
           </div>
           <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-primary"
-              @click="submitRating"
-            >
-              Submit
-            </button>
+            <ButtonComponent
+                :clickHandler="submitRating"
+                buttonType="button"
+                buttonClass="button submit-rating"
+                iconName="send-outline"
+                labelClass="button__text"
+                labelText="Submit Rating"
+              />
           </div>
         </div>
       </div>
