@@ -32,8 +32,14 @@ def get_ml_task(user_story, domain):
     traindata = []
     for msg in [user_story]:
         words = msg.split()
-        vecs = [glove_vectors[word] for word in words if word in glove_vectors]
-        vec_avg = sum(vecs) / len(vecs) if vecs else [0] * 100
+        vecs = []
+        for word in words:
+            if word in glove_vectors:
+                vecs.append(glove_vectors[word])
+        if vecs:
+            vec_avg = sum(vecs) / len(vecs)
+        else:
+            vec_avg = [0] * 100
         traindata.append(vec_avg)
     traindata = pd.DataFrame(traindata)
     traindata.columns = traindata.columns.astype(str)
@@ -53,12 +59,18 @@ def feature_extraction(domain, mltasks):
     out_features = {}
 
     # Feature del dominio
-    domain_features = [domains_mapping['Feature'][index] for index in domains_mapping.index if domains_mapping['Domain'][index].lower() == domain.lower()]
+    domain_features = []
+    for index in domains_mapping.index:
+        if domains_mapping['Domain'][index].lower() == domain.lower():
+            domain_features.append(domains_mapping['Feature'][index])
 
-    # Feature per ogni task
+# Feature per ogni task
     for task in mltasks:
-        task_features = [tasks_mapping['Feature'][index] for index in tasks_mapping.index if tasks_mapping['Task'][index].lower() == task.lower()]
-        out_features[task] = intersection(task_features, domain_features)
+        tmp = []
+        for index in tasks_mapping.index:
+            if tasks_mapping['Task'][index].lower() == task.lower():
+                tmp.append(tasks_mapping['Feature'][index])
+        out_features[task] = intersection(tmp, domain_features)
 
     return out_features
 
@@ -77,6 +89,7 @@ def predict_tasks():
     data = request.get_json()
     user_story = data.get('user_story')
     domain = data.get('domain')
+    # aggiungere controllo per prendere domain in input se presente altrimenti si fa get_domain
 
     if not user_story or not domain:
         return jsonify({
