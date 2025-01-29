@@ -28,7 +28,17 @@ def predict_domain():
         })
 
     # Estrae la user story dal corpo della richiesta
-    data = request.get_json()
+    try:
+        data = request.get_json(force=True)  # Forza la conversione in JSON
+        if isinstance(data, str):  # Se è ancora una stringa, proviamo a convertirlo manualmente
+            import json
+            data = json.loads(data)
+    except Exception as e:
+        return jsonify({
+            "status": "failure",
+            "motivation": f"Invalid JSON format: {str(e)}"
+        })
+
     user_story = data.get('user_story')
 
     if not user_story:

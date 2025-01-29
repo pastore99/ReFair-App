@@ -3,7 +3,7 @@ from tkinter import Scrollbar, Canvas, Frame, Label, Button
 from tkinter import messagebox
 
 from components.custom_messagebox import CustomMessageBox
-
+from components.rating_window import RatingWindow
 from domain_utils import getDomain, getMLTask
 
 
@@ -49,7 +49,7 @@ class UserStoryCanvas(Frame):
             separator = Frame(self.content_frame, height=1, bd=1, relief=tk.SUNKEN, bg="black")
             separator.pack(fill=tk.X, padx=5, pady=5)
 
-    def analyze(self, user_story):
+    def analyze(self, user_story, features_extracted=None):
         # Chiama la funzione getDomain e aggiorna la label con il risultato
         predicted_domain = getDomain(user_story)
         results = getMLTask(user_story, predicted_domain)
@@ -57,3 +57,6 @@ class UserStoryCanvas(Frame):
         feauters_extracted = results["tasks_features"]
 
         CustomMessageBox(self, predicted_domain, user_story, predicted_domain, feauters_extracted)
+
+        # Apre la finestra di valutazione
+        self.after(1000, lambda: RatingWindow(self, user_story, predicted_domain, features_extracted))
