@@ -4,17 +4,23 @@ from transformers import BertTokenizer
 import pickle
 import pandas as pd
 
+import os
+
 # Configurazione Flask
 app = Flask(__name__)
 CORS(app, resources={r'/*': {'origins': '*'}})
 
 # Caricamento del modello e del tokenizer
 domain_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-with open('../refair-server/models/XGBClassifier.pkl', 'rb') as f:
+
+base_dir = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(base_dir, '..', 'refair-server', 'models', 'XGBClassifier.pkl')
+with open(model_path, 'rb') as f:
     domain_classifier = pickle.load(f)
 
 # Dataset con i domini
-dataset = pd.read_excel("../refair-server/datasets/Synthetic User Stories.xlsx")
+user_path = os.path.join(base_dir, '..', 'refair-server', 'datasets', 'Synthetic User Stories.xlsx')
+dataset = pd.read_excel(user_path)
 
 @app.route('/predict/domain', methods=['POST'])
 def predict_domain():

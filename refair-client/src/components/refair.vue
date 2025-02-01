@@ -433,10 +433,14 @@
             <div v-else class="pt-3 mx-4">No sensitive features suggested</div>
           </div>
           <div class="modal-footer">
-            <!-- Pulsante per aprire la Modal -->
-                <button class="btn btn-primary mt-5" @click="showRatingModal">
-                  Valuta
-                </button>
+            <ButtonComponent
+              :clickHandler="showRatingModal"
+              buttonType="button"
+              buttonClass="button rating"
+              iconName="star-outline"
+              labelClass="button__text"
+              labelText="Valuta"
+            />
 
             <ButtonComponent
               buttonType="button"
@@ -478,28 +482,49 @@
             ></button>
           </div>
           <div class="modal-body text-center">
-            <!-- Sistema di Rating -->
-            <div class="rating-container">
-              <span
-                v-for="star in 5"
-                :key="star"
-                class="rating-star"
-                :class="{ 'selected-star': rating >= star }"
-                @click="setRating(star)"
-              >
-                ★
-              </span>
+            <!-- Rating per Domain Identification -->
+            <div class="rating-section">
+              <p class="rating-label">How accurate is the domain identification?</p>
+              <div class="rating-container">
+                <span
+                  v-for="star in 5"
+                  :key="'domain-' + star"
+                  class="rating-star"
+                  :class="{ 'selected-star': ratingDomain >= star }"
+                  @click="setRating('domain', star)"
+                >
+                  ★
+                </span>
+              </div>
+              <p class="mt-1">You selected: {{ ratingDomain }} star(s)</p>
             </div>
-            <p class="mt-3">You selected: {{ rating }} star(s)</p>
+
+            <!-- Rating per Task Identification -->
+            <div class="rating-section">
+              <p class="rating-label">How accurate is the task identification?</p>
+              <div class="rating-container">
+                <span
+                  v-for="star in 5"
+                  :key="'task-' + star"
+                  class="rating-star"
+                  :class="{ 'selected-star': ratingTask >= star }"
+                  @click="setRating('task', star)"
+                >
+                  ★
+                </span>
+              </div>
+              <p class="mt-1">You selected: {{ ratingTask }} star(s)</p>
+            </div>
           </div>
           <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-primary"
-              @click="submitRating"
-            >
-              Submit
-            </button>
+            <ButtonComponent
+              :clickHandler="submitRating"
+              buttonType="button"
+              buttonClass="button submit-rating"
+              iconName="send-outline"
+              labelClass="button__text"
+              labelText="Submit Rating"
+            />
           </div>
         </div>
       </div>
@@ -560,7 +585,8 @@ export default {
       fileLoaded: false, // Variable to track if a file has been loaded
       currentPageInput: 1, // Variable to track the user's input for the page number
       activeRatingModal: false, // Controlla lo stato della modal
-      rating: 0, // Valore del rating selezionato
+      ratingDomain: 0,
+      ratingTask: 0,
       story: "Example User Story", // Esempio di storia
     };
   },
@@ -720,56 +746,44 @@ export default {
     },
 
     showRatingModal() {
-      console.log("Opening rating modal..."); // Debug per verificare
       this.activeRatingModal = true;
     },
 
-    // Chiude la modal
     closeRatingModal() {
-      console.log("Closing rating modal..."); // Debug per verificare
       this.activeRatingModal = false;
-      this.rating = 0; // Resetta il rating
+      this.ratingDomain = 0;
+      this.ratingTask = 0;
     },
 
-    // Imposta il valore del rating
-    setRating(star) {
-      console.log(`Setting rating to ${star} stars`); // Debug
-      this.rating = star;
+    setRating(type, star) {
+      if (type === "domain") {
+        this.ratingDomain = star;
+      } else if (type === "task") {
+        this.ratingTask = star;
+      }
     },
 
-    // Invia il rating al server
     submitRating() {
-      if (this.rating === 0) {
-        alert("Please select a rating before submitting!");
+      if (this.ratingDomain === 0 || this.ratingTask === 0) {
+        alert("Please select a rating for both domain and task identification.");
         return;
       }
 
       const payload = {
         story: this.story,
-        rating: this.rating,
+        ratingDomain: this.ratingDomain,
+        ratingTask: this.ratingTask,
       };
-
-      console.log("Submitting rating:", payload); // Debug
 
       axios
         .post("http://localhost:8080/submit-rating", payload)
         .then((response) => {
-          console.log("Rating submitted successfully:", response.data);
           alert("Rating submitted successfully!");
           this.closeRatingModal();
         })
         .catch((error) => {
-          console.error("Error submitting rating:", error);
           alert("An error occurred while submitting the rating.");
         });
-    },
-
-    // Pagination
-    changePage(page) {
-      if (page > 0 && page <= this.totalPages) {
-        this.currentPage = page;
-        this.currentPageInput = page; // Updates the input of the current page
-      }
     },
 
     // Chapters
@@ -837,6 +851,15 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 <style>
+.rating-section {
+  margin-bottom: 20px;
+}
+
+.rating-label {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
 .rating-container {
   display: flex;
   justify-content: center;
