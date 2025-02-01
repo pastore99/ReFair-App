@@ -64,7 +64,7 @@ def feature_extraction(domain, mltasks):
         if domains_mapping['Domain'][index].lower() == domain.lower():
             domain_features.append(domains_mapping['Feature'][index])
 
-# Feature per ogni task
+    # Feature per ogni task
     for task in mltasks:
         tmp = []
         for index in tasks_mapping.index:
