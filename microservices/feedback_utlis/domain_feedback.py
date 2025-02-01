@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from transformers import BertTokenizer
 from xgboost import XGBClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, f1_score
 from copy import deepcopy  # Utilizziamo deepcopy al posto di clone
 from flask import jsonify, request
 
@@ -49,7 +49,8 @@ def save_domain_feedback(entry):
         feedback_list = []
     feedback_list.append(entry)
     with open(DOMAIN_FEEDBACK_FILE, 'w') as f:
-        json.dump(feedback_list, f)
+        # Svuota il file scrivendo un array vuoto in formato leggibile
+        json.dump(feedback_list, f, indent=4)
 
 def load_domain_feedback():
     """Carica e restituisce la lista dei feedback salvati."""
@@ -106,7 +107,7 @@ def retrain_domain_model(feedback_list):
         y_feedback = np.array([])
         weights_feedback = np.array([])
 
-    # Combiniamo i dataset originali e i feedback
+    # Combina i dataset originali e i feedback
     if X_feedback.shape[0] > 0:
         X_combined = np.concatenate([X_original, X_feedback], axis=0)
         y_combined = np.concatenate([y_original, y_feedback], axis=0)
@@ -120,9 +121,11 @@ def retrain_domain_model(feedback_list):
     try:
         old_preds = domain_classifier.predict(X_combined)
         old_accuracy = accuracy_score(y_combined, old_preds, sample_weight=weights_combined)
+        old_f1 = f1_score(y_combined, old_preds, average='micro', sample_weight=weights_combined)
     except Exception as e:
         print("Errore nella valutazione del modello attuale:", e)
         old_accuracy = 0
+        old_f1 = 0
 
     # --- Patching dell'oggetto domain_classifier ---
     if not hasattr(domain_classifier, "device"):
@@ -130,14 +133,14 @@ def retrain_domain_model(feedback_list):
     if not hasattr(domain_classifier, "multi_strategy"):
         setattr(domain_classifier, "multi_strategy", None)
 
-    # Otteniamo i parametri dal modello patchato
+    # Ottieni i parametri dal modello patchato
     try:
         params = domain_classifier.get_params()
     except Exception as e:
         print("Errore in get_params:", e)
         return
 
-    # Creiamo un nuovo modello XGBClassifier con gli stessi parametri
+    # Crea un nuovo modello XGBClassifier con gli stessi parametri
     new_model = XGBClassifier(**params)
     try:
         new_model.fit(X_combined, y_combined, sample_weight=weights_combined)
@@ -147,12 +150,16 @@ def retrain_domain_model(feedback_list):
     try:
         new_preds = new_model.predict(X_combined)
         new_accuracy = accuracy_score(y_combined, new_preds, sample_weight=weights_combined)
+        new_f1 = f1_score(y_combined, new_preds, average='micro', sample_weight=weights_combined)
     except Exception as e:
         print("Errore nella valutazione del nuovo modello domain:", e)
         new_accuracy = 0
+        new_f1 = 0
 
     print("Accuratezza modello attuale:", old_accuracy)
+    print("F1-score modello attuale:", old_f1)
     print("Accuratezza nuovo modello:", new_accuracy)
+    print("F1-score nuovo modello:", new_f1)
 
     if new_accuracy > old_accuracy:
         domain_classifier = new_model
@@ -160,11 +167,11 @@ def retrain_domain_model(feedback_list):
         with open(model_path, 'wb') as f:
             pickle.dump(domain_classifier, f)
         print("Domain classifier aggiornato e salvato con successo.")
+        # Svuota il file dei feedback con una formattazione leggibile
         with open(DOMAIN_FEEDBACK_FILE, 'w') as f:
-            json.dump([], f)
+            json.dump([], f, indent=4)
     else:
         print("Il nuovo domain classifier non è migliore. Nessun aggiornamento effettuato.")
-
 
 def check_domain_feedback_threshold_and_retrain():
     feedback_list = load_domain_feedback()
