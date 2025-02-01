@@ -208,7 +208,7 @@ def retrain_model(feedback_list):
     # Se il nuovo modello performa meglio, sostituisci quello in produzione
     if new_f1 > old_f1:
         lsvc = new_model
-        model_path = '../../refair-server/models/LinearSVC_LabelPowerset.pkl'
+        model_path = os.path.join(base_dir, '..', '..', 'refair-server', 'models', 'LinearSVC_LabelPowerset.pkl')
         with open(model_path, 'wb') as f:
             pickle.dump(lsvc, f)
         print("Modello aggiornato e salvato con successo.")
