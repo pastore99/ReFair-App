@@ -50,7 +50,7 @@ def save_domain_feedback(entry):
     feedback_list.append(entry)
     with open(DOMAIN_FEEDBACK_FILE, 'w') as f:
         # Svuota il file scrivendo un array vuoto in formato leggibile
-        json.dump(feedback_list, f, indent=4)
+        json.dump(feedback_list, f, indent=4, ensure_ascii=False)
 
 def load_domain_feedback():
     """Carica e restituisce la lista dei feedback salvati."""

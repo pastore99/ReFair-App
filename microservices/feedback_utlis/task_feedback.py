@@ -45,7 +45,7 @@ FEEDBACK_THRESHOLD = 10
 
 # Funzioni per il salvataggio del feedback e per il retraining
 def save_feedback(entry):
-    """Salva l'entry del feedback nel file JSON."""
+    """Salva l'entry del feedback nel file JSON con formattazione leggibile."""
     if os.path.exists(FEEDBACK_FILE):
         with open(FEEDBACK_FILE, 'r') as f:
             try:
@@ -54,9 +54,11 @@ def save_feedback(entry):
                 feedback_list = []
     else:
         feedback_list = []
+
     feedback_list.append(entry)
+
     with open(FEEDBACK_FILE, 'w') as f:
-        json.dump(feedback_list, f)
+        json.dump(feedback_list, f, indent=4, ensure_ascii=False)
 
 def load_original_dataset():
     """
@@ -123,8 +125,11 @@ def retrain_model(feedback_list):
     for entry in feedback_list:
         vec_avg = compute_feature_vector(entry['user_story'])
         X_feedback.append(vec_avg)
-        # Trasforma le task predette in un vettore binario
-        binary_label = mlb.transform([entry['predicted_tasks']])[0]
+        # Recupera predicted_tasks e controlla che non sia None
+        predicted_tasks = entry.get('predicted_tasks')
+        if predicted_tasks is None:
+            continue
+        binary_label = mlb.transform([predicted_tasks])[0]
         y_feedback.append(binary_label)
         weights_feedback.append(float(entry['feedback_value']))
 
@@ -140,10 +145,8 @@ def retrain_model(feedback_list):
     for entry in original_data:
         vec_avg = compute_feature_vector(entry['user_story'])
         X_original.append(vec_avg)
-        # Trasforma le task in un vettore binario
         binary_label = mlb.transform([entry['predicted_tasks']])[0]
         y_original.append(binary_label)
-        # Peso fisso per i dati originali (es. 1.0)
         weights_original.append(1.0)
 
     X_original = np.array(X_original)
@@ -177,12 +180,11 @@ def retrain_model(feedback_list):
     # Clona il modello attuale
     new_model = clone(lsvc)
 
-    # Implementiamo il resampling ponderato:
-    # Per ogni campione, replicalo int(round(peso)) volte.
+    # Implementa il resampling ponderato: replicare ogni campione in base al suo peso
     X_weighted = []
     y_weighted = []
     for i, w in enumerate(weights_combined):
-        reps = int(round(w))  # Supponiamo che w sia un intero o vicino a un intero
+        reps = int(round(w))
         for _ in range(reps):
             X_weighted.append(X_combined[i])
             y_weighted.append(y_combined[i])
@@ -208,11 +210,10 @@ def retrain_model(feedback_list):
     # Se il nuovo modello performa meglio, sostituisci quello in produzione
     if new_f1 > old_f1:
         lsvc = new_model
-        model_path = os.path.join(base_dir, '..', '..', 'refair-server', 'models', 'LinearSVC_LabelPowerset.pkl')
+        model_path = os.path.join(base_dir, '..', 'refair-server', 'models', 'LinearSVC_LabelPowerset.pkl')
         with open(model_path, 'wb') as f:
             pickle.dump(lsvc, f)
         print("Modello aggiornato e salvato con successo.")
-        # Svuota il file dei feedback (oppure archivialo, se necessario)
         with open(FEEDBACK_FILE, 'w') as f:
             json.dump([], f)
     else:
