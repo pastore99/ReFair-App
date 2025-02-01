@@ -149,3 +149,4 @@ def refair(user_story):
         print("Domain: {} - Task: {} - Sensitive Features: {}".format(get_domain(user_story), task, output[task]))
 
     print('*** REFAIR ended ***')
+
