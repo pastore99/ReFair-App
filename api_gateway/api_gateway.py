@@ -10,7 +10,8 @@ MICROSERVICES = {
     "file_management": "http://localhost:5001",
     "domain_prediction": "http://localhost:5002",
     "task_prediction": "http://localhost:5003",
-    "report_generation": "http://localhost:5004"
+    "report_generation": "http://localhost:5004",
+    "feedback": "http://localhost:5005"
 }
 
 @app.route('/storiesload', methods=['POST'])
@@ -40,6 +41,20 @@ def generate_report():
     """Inoltra la richiesta al microservizio Report Generation."""
     data = request.get_json()
     response = requests.post(f"{MICROSERVICES['report_generation']}/generate/report", json=data)
+    return response.content, response.status_code, {"Content-Type": "application/json"}
+
+@app.route('/feedback/domain', methods=['POST'])
+def feedback_domain():
+    """Inoltra la richiesta al microservizio Report Generation."""
+    data = request.get_json()
+    response = requests.post(f"{MICROSERVICES['feedback']}/feedback/domain", json=data)
+    return response.content, response.status_code, {"Content-Type": "application/json"}
+
+@app.route('/feedback/tasks', methods=['POST'])
+def feedback_tasks():
+    """Inoltra la richiesta al microservizio Report Generation."""
+    data = request.get_json()
+    response = requests.post(f"{MICROSERVICES['feedback']}/feedback/tasks", json=data)
     return response.content, response.status_code, {"Content-Type": "application/json"}
 
 if __name__ == '__main__':

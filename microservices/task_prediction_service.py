@@ -28,9 +28,6 @@ def intersection(lst1, lst2):
     return [value for value in lst1 if value in lst2]
 
 def get_ml_task(user_story, domain):
-    """
-    Predice i task ML da una user story e filtra i task rilevanti per il dominio.
-    """
     traindata = []
     for msg in [user_story]:
         words = msg.split()
@@ -46,12 +43,22 @@ def get_ml_task(user_story, domain):
     traindata = pd.DataFrame(traindata)
     traindata.columns = traindata.columns.astype(str)
 
+    # Debug: stampa l'output grezzo della predizione
+    raw_pred = lsvc.predict(traindata.values)
+    print("Raw prediction:", raw_pred)
+    inv_pred = mlb.inverse_transform(raw_pred)
+    print("Inverse transformed prediction:", inv_pred)
+
     output = []
-    for prediction in mlb.inverse_transform(lsvc.predict(traindata.values))[0]:
-        for index in domain_task_mapping.index:
-            if (domain_task_mapping['Domain'][index].lower() == domain.lower() and
-                    domain_task_mapping['Task'][index].lower() == prediction.lower()):
-                output.append(prediction)
+    if inv_pred and len(inv_pred) > 0:
+        for prediction in inv_pred[0]:
+            # Debug: stampa la predizione corrente
+            print("Predicted task:", prediction)
+            for index in domain_task_mapping.index:
+                domain_val = domain_task_mapping['Domain'][index].lower()
+                task_val = domain_task_mapping['Task'][index].lower()
+                if (domain_val == domain.lower() and task_val == prediction.lower()):
+                    output.append(prediction)
     return output
 
 def feature_extraction(domain, mltasks):

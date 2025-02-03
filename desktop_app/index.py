@@ -20,20 +20,21 @@ file_path = ""
 user_stories = []
 canvas_frame = None
 scrollbar = None
+base_dir = os.path.dirname(os.path.abspath(__file__))
 
 class RefairDesktopApp:
     def __init__(self, root):
         self.root = root
         self.root.title("ReFair desktop app")
         self.root.geometry("1100x600")  # Dimensioni della finestra
-        self.root.iconbitmap('icons/bill_invoice_shop_icon.ico')
+        self.root.iconbitmap(os.path.join(base_dir, 'icons', 'bill_invoice_shop_icon.ico'))
 
         # Path all'icona (modifica il percorso se necessario)
-        icon_right_arrow_path = "icons/right_arrow_icon.png"
-        document_attach_outline_path = "icons/document-attach-outline.png"
-        cloud_download_outline_path = "icons/code-download-outline.png"
-        cloud_upload_outline_path = "icons/cloud-upload-outline.png"
-        analytics_outline_path = "icons/analytics-outline.png"
+        icon_right_arrow_path = os.path.join(base_dir, 'icons', 'right_arrow_icon.png')
+        document_attach_outline_path = os.path.join(base_dir, 'icons', 'document-attach-outline.png')
+        cloud_download_outline_path = os.path.join(base_dir, 'icons', 'code-download-outline.png')
+        cloud_upload_outline_path = os.path.join(base_dir, 'icons', 'cloud-upload-outline.png')
+        analytics_outline_path = os.path.join(base_dir, 'icons', 'analytics-outline.png')
 
         # Carica l'icona
         right_arrow_icon = Image.open(icon_right_arrow_path)

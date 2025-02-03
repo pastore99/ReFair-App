@@ -9,6 +9,4 @@ start cmd /k "cd /d %~dp0\refair-server && .\env\Scripts\activate && cd.. && py 
 timeout /t 2
 start cmd /k "cd /d %~dp0\refair-server && .\env\Scripts\activate && cd.. && py .\api_gateway\api_gateway.py"
 timeout /t 2
-start cmd /k "cd /d %~dp0\refair-client && npm run dev"
-timeout /t 5
-start "" "http://localhost:5173/"
+start cmd /k "cd /d %~dp0\refair-server && .\env\Scripts\activate && cd.. && py .\desktop_app\index.py"

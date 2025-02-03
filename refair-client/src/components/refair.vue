@@ -764,24 +764,41 @@ export default {
     },
 
     submitRating() {
+      // Controlla che entrambi i rating siano stati selezionati
       if (this.ratingDomain === 0 || this.ratingTask === 0) {
         alert("Please select a rating for both domain and task identification.");
         return;
       }
 
-      const payload = {
-        story: this.story,
-        ratingDomain: this.ratingDomain,
-        ratingTask: this.ratingTask,
+      // Costruiamo il payload per il feedback del dominio
+      const domainPayload = {
+        user_story: this.story,
+        predicted_domain: this.story_domain,  // Assicurati che questa proprietà sia disponibile
+        feedback_value: this.ratingDomain
       };
 
+      // Costruiamo il payload per il feedback dei task
+      const tasksPayload = {
+        user_story: this.story,
+        domain: this.story_domain,
+        predicted_tasks: Object.keys(this.story_tasks),
+        feedback_value: this.ratingTask
+      };
+
+      // Invio delle richieste POST in sequenza
       axios
-        .post("http://localhost:8080/submit-rating", payload)
-        .then((response) => {
+        .post("http://127.0.0.1:8080/feedback/domain", domainPayload)
+        .then((responseDomain) => {
+          // Dopo che il feedback per il dominio è stato inviato con successo,
+          // inviamo il feedback per i task.
+          return axios.post("http://127.0.0.1:8080/feedback/tasks", tasksPayload);
+        })
+        .then((responseTasks) => {
           alert("Rating submitted successfully!");
           this.closeRatingModal();
         })
         .catch((error) => {
+          console.error(error);
           alert("An error occurred while submitting the rating.");
         });
     },

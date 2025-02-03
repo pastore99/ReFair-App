@@ -2,7 +2,7 @@ import os
 import json
 from datetime import datetime
 import numpy as np
-from flask import Flask, jsonify, request
+from flask import jsonify, request
 from flask_cors import CORS
 import gensim
 import pickle
@@ -10,118 +10,42 @@ import pandas as pd
 from sklearn.metrics import f1_score
 from sklearn.base import clone
 
-# ====================================================
-# Configurazione dell'applicazione Flask
-# ====================================================
-app = Flask(__name__)
-CORS(app, resources={r'/*': {'origins': '*'}})
 
-# ====================================================
+base_dir = os.path.dirname(os.path.abspath(__file__))
+
 # Caricamento dei modelli e dei dati
-# ====================================================
 # Caricamento di GloVe per ottenere il vettore medio della user story
 glove_vectors = gensim.models.KeyedVectors.load_word2vec_format(
-    '../refair-server/models/glove.6B.100d.txt',
+    os.path.join(base_dir, '..', '..', 'refair-server', 'models', 'glove.6B.100d.txt'),
     binary=False,
     no_header=True
 )
 
 # Caricamento del MultiLabelBinarizer e del classificatore (es. LinearSVC con LabelPowerset)
-with open('../refair-server/models/multilabel.pkl', 'rb') as f:
+with open(os.path.join(base_dir, '..', '..', 'refair-server', 'models', 'multilabel.pkl'), 'rb') as f:
     mlb = pickle.load(f)
 
-with open('../refair-server/models/LinearSVC_LabelPowerset.pkl', 'rb') as f:
+with open(os.path.join(base_dir, '..', '..', 'refair-server', 'models', 'LinearSVC_LabelPowerset.pkl'), 'rb') as f:
     lsvc = pickle.load(f)
 
 # Caricamento dei mapping per dominio e task
-domain_task_mapping = pd.read_csv("../refair-server/datasets/domains-tasks-mapping.csv")
-domains_mapping = pd.read_csv("../refair-server/datasets/domains-features-mapping.csv")
-tasks_mapping = pd.read_csv("../refair-server/datasets/tasks-features-mapping.csv")
+domain_task_mapping = pd.read_csv(os.path.join(base_dir, '..', '..', 'refair-server', 'datasets', 'domains-tasks-mapping.csv'))
+domains_mapping = pd.read_csv(os.path.join(base_dir, '..', '..', 'refair-server', 'datasets', 'domains-features-mapping.csv'))
+tasks_mapping = pd.read_csv(os.path.join(base_dir, '..', '..', 'refair-server', 'datasets', 'tasks-features-mapping.csv'))
 
 # ====================================================
 # Costanti per il salvataggio dei feedback e del dataset originale
 # ====================================================
-FEEDBACK_FILE = 'feedbacks.json'
+FEEDBACK_FILE = os.path.join(base_dir, '..', '..', 'feedback_results', 'tasks_feedbacks.json')
 # Se hai un file JSON per il dataset originale lo usi, altrimenti useremo l'excel
 # ORIGINAL_DATASET_FILE = 'original_dataset.json'
-EXCEL_DATASET_FILE = '../refair-server/datasets/Synthetic User Stories.xlsx'
+EXCEL_DATASET_FILE = os.path.join(base_dir, '..', '..', 'refair-server', 'datasets', 'Synthetic User Stories.xlsx')
 # Imposta la soglia di feedback per attivare il retraining (modifica secondo le necessità)
 FEEDBACK_THRESHOLD = 10
 
-# ====================================================
-# Funzioni di supporto
-# ====================================================
-def intersection(lst1, lst2):
-    """Ritorna l'intersezione tra due liste."""
-    return [value for value in lst1 if value in lst2]
-
-def get_ml_task(user_story, domain):
-    """
-    Predice i task ML da una user story e filtra quelli rilevanti per il dominio.
-    """
-    words = user_story.split()
-    vecs = [glove_vectors[word] for word in words if word in glove_vectors]
-    vec_avg = sum(vecs) / len(vecs) if vecs else [0] * 100
-    traindata = pd.DataFrame([vec_avg])
-    traindata.columns = traindata.columns.astype(str)
-
-    output = []
-    for prediction in mlb.inverse_transform(lsvc.predict(traindata.values))[0]:
-        for index in domain_task_mapping.index:
-            if (domain_task_mapping['Domain'][index].lower() == domain.lower() and
-                    domain_task_mapping['Task'][index].lower() == prediction.lower()):
-                output.append(prediction)
-    return output
-
-def feature_extraction(domain, mltasks):
-    """
-    Estrae le feature sensibili rilevanti per il dominio e per ciascun task ML.
-    """
-    out_features = {}
-    domain_features = [domains_mapping['Feature'][index]
-                       for index in domains_mapping.index
-                       if domains_mapping['Domain'][index].lower() == domain.lower()]
-
-    for task in mltasks:
-        tmp = [tasks_mapping['Feature'][index]
-               for index in tasks_mapping.index
-               if tasks_mapping['Task'][index].lower() == task.lower()]
-        out_features[task] = intersection(tmp, domain_features)
-
-    return out_features
-
-# ====================================================
-# Endpoint per la predizione dei task
-# ====================================================
-@app.route('/predict/tasks', methods=['POST'])
-def predict_tasks():
-    """
-    Riceve in input una user story e un dominio e restituisce i task ML predetti e le relative feature.
-    """
-    if not request.is_json:
-        return jsonify({"status": "failure", "motivation": "Request body must be JSON"}), 400
-
-    data = request.get_json()
-    user_story = data.get('user_story')
-    domain = data.get('domain')
-
-    if not user_story or not domain:
-        return jsonify({"status": "failure", "motivation": "Missing 'user_story' or 'domain' in request"}), 400
-
-    ml_tasks = get_ml_task(user_story, domain)
-    tasks_features = feature_extraction(domain, ml_tasks)
-
-    return jsonify({
-        "status": "success",
-        "tasks": ml_tasks,
-        "tasks_features": tasks_features
-    })
-
-# ====================================================
 # Funzioni per il salvataggio del feedback e per il retraining
-# ====================================================
 def save_feedback(entry):
-    """Salva l'entry del feedback nel file JSON."""
+    """Salva l'entry del feedback nel file JSON con formattazione leggibile."""
     if os.path.exists(FEEDBACK_FILE):
         with open(FEEDBACK_FILE, 'r') as f:
             try:
@@ -130,9 +54,11 @@ def save_feedback(entry):
                 feedback_list = []
     else:
         feedback_list = []
+
     feedback_list.append(entry)
+
     with open(FEEDBACK_FILE, 'w') as f:
-        json.dump(feedback_list, f)
+        json.dump(feedback_list, f, indent=4, ensure_ascii=False)
 
 def load_original_dataset():
     """
@@ -199,8 +125,11 @@ def retrain_model(feedback_list):
     for entry in feedback_list:
         vec_avg = compute_feature_vector(entry['user_story'])
         X_feedback.append(vec_avg)
-        # Trasforma le task predette in un vettore binario
-        binary_label = mlb.transform([entry['predicted_tasks']])[0]
+        # Recupera predicted_tasks e controlla che non sia None
+        predicted_tasks = entry.get('predicted_tasks')
+        if predicted_tasks is None:
+            continue
+        binary_label = mlb.transform([predicted_tasks])[0]
         y_feedback.append(binary_label)
         weights_feedback.append(float(entry['feedback_value']))
 
@@ -216,10 +145,8 @@ def retrain_model(feedback_list):
     for entry in original_data:
         vec_avg = compute_feature_vector(entry['user_story'])
         X_original.append(vec_avg)
-        # Trasforma le task in un vettore binario
         binary_label = mlb.transform([entry['predicted_tasks']])[0]
         y_original.append(binary_label)
-        # Peso fisso per i dati originali (es. 1.0)
         weights_original.append(1.0)
 
     X_original = np.array(X_original)
@@ -253,12 +180,11 @@ def retrain_model(feedback_list):
     # Clona il modello attuale
     new_model = clone(lsvc)
 
-    # Implementiamo il resampling ponderato:
-    # Per ogni campione, replicalo int(round(peso)) volte.
+    # Implementa il resampling ponderato: replicare ogni campione in base al suo peso
     X_weighted = []
     y_weighted = []
     for i, w in enumerate(weights_combined):
-        reps = int(round(w))  # Supponiamo che w sia un intero o vicino a un intero
+        reps = int(round(w))
         for _ in range(reps):
             X_weighted.append(X_combined[i])
             y_weighted.append(y_combined[i])
@@ -284,16 +210,14 @@ def retrain_model(feedback_list):
     # Se il nuovo modello performa meglio, sostituisci quello in produzione
     if new_f1 > old_f1:
         lsvc = new_model
-        model_path = '../refair-server/models/LinearSVC_LabelPowerset.pkl'
+        model_path = os.path.join(base_dir, '..', 'refair-server', 'models', 'LinearSVC_LabelPowerset.pkl')
         with open(model_path, 'wb') as f:
             pickle.dump(lsvc, f)
         print("Modello aggiornato e salvato con successo.")
-        # Svuota il file dei feedback (oppure archivialo, se necessario)
         with open(FEEDBACK_FILE, 'w') as f:
             json.dump([], f)
     else:
         print("Il nuovo modello non è migliore. Nessun aggiornamento effettuato.")
-
 
 def check_feedback_threshold_and_retrain():
     """Controlla se il numero di feedback supera la soglia e, in tal caso, avvia il retraining."""
@@ -307,11 +231,7 @@ def check_feedback_threshold_and_retrain():
             print("Soglia di feedback raggiunta. Avvio del retraining...")
             retrain_model(feedback_list)
 
-# ====================================================
-# Endpoint per il feedback
-# ====================================================
-@app.route('/feedback', methods=['POST'])
-def feedback():
+def get_tasks_feedback():
     """
     Riceve il feedback come valore numerico (da 1 a 5) insieme ai dati della richiesta e lo salva.
     Esempio di payload JSON:
@@ -351,9 +271,3 @@ def feedback():
     check_feedback_threshold_and_retrain()
 
     return jsonify({"status": "success", "message": "Feedback received"}), 200
-
-# ====================================================
-# Avvio dell'applicazione
-# ====================================================
-if __name__ == '__main__':
-    app.run(port=5003)

@@ -3,47 +3,39 @@ import json
 import pickle
 import pandas as pd
 import numpy as np
-from flask import Flask, jsonify, request
-from flask_cors import CORS
 from transformers import BertTokenizer
 from xgboost import XGBClassifier
-from sklearn.metrics import accuracy_score
-from sklearn.base import clone
+from sklearn.metrics import accuracy_score, f1_score
+from copy import deepcopy  # Utilizziamo deepcopy al posto di clone
+from flask import jsonify, request
 
-# Configurazione Flask
-app = Flask(__name__)
-CORS(app, resources={r'/*': {'origins': '*'}})
-
-# Percorsi dei file
-ORIGINAL_DOMAIN_DATASET_FILE = "../refair-server/datasets/Synthetic User Stories.xlsx"
-DOMAIN_FEEDBACK_FILE = "domain_feedbacks.json"
+# Configurazioni e percorsi
+base_dir = os.path.dirname(os.path.abspath(__file__))
+ORIGINAL_DOMAIN_DATASET_FILE = os.path.join(base_dir, '..', '..', 'refair-server', 'datasets', 'Synthetic User Stories.xlsx')
+DOMAIN_FEEDBACK_FILE = os.path.join(base_dir, '..', '..', 'feedback_results', 'domain_feedbacks.json')
 DOMAIN_FEEDBACK_THRESHOLD = 10
 
-# Caricamento del tokenizer e del modello
+# Carica il tokenizer e il modello
 domain_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-with open('../refair-server/models/XGBClassifier.pkl', 'rb') as f:
+with open(os.path.join(base_dir, '..', '..', 'refair-server', 'models', 'XGBClassifier.pkl'), 'rb') as f:
     domain_classifier = pickle.load(f)
 
-# Caricamento del dataset originale (usato per mappare l'indice al dominio nella predizione)
-# Questo dataset viene usato per l'endpoint di predizione per estrarre i domini unici.
+# Carica il dataset (per ottenere l'elenco dei domini unici)
 dataset = pd.read_excel(ORIGINAL_DOMAIN_DATASET_FILE)
-
-# --- FUNZIONI DI FEATURE EXTRACTION ---
 
 def compute_domain_features(user_story):
     """
-    Tokenizza la user story con il tokenizer BERT, usando max_length=101,
-    e restituisce un vettore numpy contenente gli input_ids.
+    Tokenizza la user story con il tokenizer BERT, usando max_length=100
+    (per restituire 100 token, come previsto dal modello) e restituisce
+    un vettore numpy contenente gli input_ids.
     """
     tokenized = domain_tokenizer(
         [user_story],
         padding='max_length',
-        max_length=101,  # Assicuriamoci di avere 101 feature, come nel training
+        max_length=100,  # Usa 100 token, per essere coerenti con il training
         truncation=True
     )
     return np.array(tokenized['input_ids'][0])
-
-# --- FUNZIONI PER IL FEEDBACK ---
 
 def save_domain_feedback(entry):
     """Salva un feedback relativo alla predizione del dominio in DOMAIN_FEEDBACK_FILE."""
@@ -57,7 +49,8 @@ def save_domain_feedback(entry):
         feedback_list = []
     feedback_list.append(entry)
     with open(DOMAIN_FEEDBACK_FILE, 'w') as f:
-        json.dump(feedback_list, f)
+        # Svuota il file scrivendo un array vuoto in formato leggibile
+        json.dump(feedback_list, f, indent=4, ensure_ascii=False)
 
 def load_domain_feedback():
     """Carica e restituisce la lista dei feedback salvati."""
@@ -69,23 +62,14 @@ def load_domain_feedback():
                 return []
     return []
 
-def check_domain_feedback_threshold_and_retrain():
-    """Controlla se il numero dei feedback raggiunge la soglia e, in tal caso, avvia il retraining."""
-    feedback_list = load_domain_feedback()
-    if len(feedback_list) >= DOMAIN_FEEDBACK_THRESHOLD:
-        print("Soglia di feedback domain raggiunta. Avvio del retraining...")
-        retrain_domain_model(feedback_list)
-
-# --- PIPELINE DI RETRAINING PER IL DOMAIN CLASSIFIER ---
-
 def retrain_domain_model(feedback_list):
     global domain_classifier
-    # Carichiamo il dataset originale dal file Excel
+    # Carica il dataset originale dal file Excel
     original_df = pd.read_excel(ORIGINAL_DOMAIN_DATASET_FILE)
-    # Otteniamo l'elenco dei domini unici (l'ordine deve rimanere costante)
+    # Ottieni l'elenco dei domini unici (l'ordine deve rimanere costante)
     unique_domains = original_df["Domain"].unique()
 
-    # Costruiamo il dataset originale
+    # Costruzione del dataset originale
     X_original = []
     y_original = []
     weights_original = []
@@ -93,7 +77,6 @@ def retrain_domain_model(feedback_list):
         user_story = row["User Story"]
         domain = row["Domain"]
         X_original.append(compute_domain_features(user_story))
-        # Convertiamo il dominio in un'etichetta numerica basata su unique_domains
         label = np.where(unique_domains == domain)[0][0]
         y_original.append(label)
         weights_original.append(1.0)  # Peso fisso per i dati originali
@@ -101,7 +84,7 @@ def retrain_domain_model(feedback_list):
     y_original = np.array(y_original)
     weights_original = np.array(weights_original)
 
-    # Costruiamo il dataset dai feedback
+    # Costruzione del dataset dai feedback
     X_feedback = []
     y_feedback = []
     weights_feedback = []
@@ -109,25 +92,22 @@ def retrain_domain_model(feedback_list):
         user_story = entry["user_story"]
         predicted_domain = entry["predicted_domain"]
         try:
-            # Convertiamo il predicted_domain in etichetta; se non presente saltiamo il feedback
             label = np.where(unique_domains == predicted_domain)[0][0]
         except IndexError:
             continue
-        # Aggiungiamo il campione solo se il dominio è riconosciuto
         X_feedback.append(compute_domain_features(user_story))
         y_feedback.append(label)
         weights_feedback.append(float(entry["feedback_value"]))
-
     if len(X_feedback) > 0:
         X_feedback = np.array(X_feedback)
         y_feedback = np.array(y_feedback)
         weights_feedback = np.array(weights_feedback)
     else:
-        X_feedback = np.empty((0, 101))  # 101 feature
+        X_feedback = np.empty((0, 100))  # 100 feature
         y_feedback = np.array([])
         weights_feedback = np.array([])
 
-    # Combiniamo i dataset originali e i feedback
+    # Combina i dataset originali e i feedback
     if X_feedback.shape[0] > 0:
         X_combined = np.concatenate([X_original, X_feedback], axis=0)
         y_combined = np.concatenate([y_original, y_feedback], axis=0)
@@ -141,12 +121,27 @@ def retrain_domain_model(feedback_list):
     try:
         old_preds = domain_classifier.predict(X_combined)
         old_accuracy = accuracy_score(y_combined, old_preds, sample_weight=weights_combined)
+        old_f1 = f1_score(y_combined, old_preds, average='weighted', sample_weight=weights_combined)
     except Exception as e:
         print("Errore nella valutazione del modello attuale:", e)
         old_accuracy = 0
+        old_f1 = 0
 
-    # Cloniamo il modello attuale e ritreniamo usando sample_weight
-    new_model = clone(domain_classifier)
+    # --- Patching dell'oggetto domain_classifier ---
+    if not hasattr(domain_classifier, "device"):
+        setattr(domain_classifier, "device", "cpu")
+    if not hasattr(domain_classifier, "multi_strategy"):
+        setattr(domain_classifier, "multi_strategy", None)
+
+    # Ottieni i parametri dal modello patchato
+    try:
+        params = domain_classifier.get_params()
+    except Exception as e:
+        print("Errore in get_params:", e)
+        return
+
+    # Crea un nuovo modello XGBClassifier con gli stessi parametri
+    new_model = XGBClassifier(**params)
     try:
         new_model.fit(X_combined, y_combined, sample_weight=weights_combined)
     except Exception as e:
@@ -155,33 +150,36 @@ def retrain_domain_model(feedback_list):
     try:
         new_preds = new_model.predict(X_combined)
         new_accuracy = accuracy_score(y_combined, new_preds, sample_weight=weights_combined)
+        new_f1 = f1_score(y_combined, new_preds, average='weighted', sample_weight=weights_combined)
     except Exception as e:
         print("Errore nella valutazione del nuovo modello domain:", e)
         new_accuracy = 0
+        new_f1 = 0
 
     print("Accuratezza modello attuale:", old_accuracy)
+    print("F1-score modello attuale:", old_f1)
     print("Accuratezza nuovo modello:", new_accuracy)
+    print("F1-score nuovo modello:", new_f1)
 
-    # Se il nuovo modello migliora, lo salviamo in produzione e svuotiamo i feedback
     if new_accuracy > old_accuracy:
         domain_classifier = new_model
-        model_path = '../refair-server/models/XGBClassifier.pkl'
+        model_path = os.path.join(base_dir, '..', '..', 'refair-server', 'models', 'XGBClassifier.pkl')
         with open(model_path, 'wb') as f:
             pickle.dump(domain_classifier, f)
         print("Domain classifier aggiornato e salvato con successo.")
+        # Svuota il file dei feedback con una formattazione leggibile
         with open(DOMAIN_FEEDBACK_FILE, 'w') as f:
-            json.dump([], f)
+            json.dump([], f, indent=4)
     else:
         print("Il nuovo domain classifier non è migliore. Nessun aggiornamento effettuato.")
 
-# --- ENDPOINT DI PREDIZIONE ---
+def check_domain_feedback_threshold_and_retrain():
+    feedback_list = load_domain_feedback()
+    if len(feedback_list) >= DOMAIN_FEEDBACK_THRESHOLD:
+        print("Soglia di feedback domain raggiunta. Avvio del retraining...")
+        retrain_domain_model(feedback_list)
 
-@app.route('/predict/domain', methods=['POST'])
-def predict_domain():
-    """
-    Predice il dominio di una user story.
-    Il JSON in input deve contenere la chiave "user_story".
-    """
+def predict_domain_endpoint():
     if not request.is_json:
         return jsonify({"status": "failure", "motivation": "Request body must be JSON"}), 400
     data = request.get_json()
@@ -192,28 +190,16 @@ def predict_domain():
     tokenized_data = domain_tokenizer(
         [user_story],
         padding='max_length',
-        max_length=101,  # Utilizziamo 101 token
+        max_length=100,  # Usa 100 token
         truncation=True
     )
-    # Creiamo un DataFrame per essere compatibili con il modello addestrato
     traindata = pd.DataFrame(tokenized_data['input_ids'])
     traindata.columns = traindata.columns.astype(str)
     prediction = domain_classifier.predict(traindata.values)
-    # Recuperiamo il dominio dalla lista dei domini unici del dataset
     domain = dataset["Domain"].unique()[prediction[0]]
     return jsonify({"status": "success", "domain": domain})
 
-# --- ENDPOINT DI FEEDBACK ---
-
-@app.route('/feedback/domain', methods=['POST'])
-def feedback_domain():
-    """
-    Riceve un feedback per la predizione del dominio.
-    Il JSON in input deve contenere:
-      - "user_story"
-      - "predicted_domain" (il dominio predetto dal sistema)
-      - "feedback_value" (un valore numerico da 1 a 5)
-    """
+def get_domain_feedback():
     if not request.is_json:
         return jsonify({"status": "failure", "motivation": "Request body must be JSON"}), 400
     data = request.get_json()
@@ -237,6 +223,3 @@ def feedback_domain():
     save_domain_feedback(feedback_entry)
     check_domain_feedback_threshold_and_retrain()
     return jsonify({"status": "success", "message": "Domain feedback received"}), 200
-
-if __name__ == '__main__':
-    app.run(port=5002)
