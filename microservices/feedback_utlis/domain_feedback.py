@@ -121,7 +121,7 @@ def retrain_domain_model(feedback_list):
     try:
         old_preds = domain_classifier.predict(X_combined)
         old_accuracy = accuracy_score(y_combined, old_preds, sample_weight=weights_combined)
-        old_f1 = f1_score(y_combined, old_preds, average='micro', sample_weight=weights_combined)
+        old_f1 = f1_score(y_combined, old_preds, average='weighted', sample_weight=weights_combined)
     except Exception as e:
         print("Errore nella valutazione del modello attuale:", e)
         old_accuracy = 0
@@ -150,7 +150,7 @@ def retrain_domain_model(feedback_list):
     try:
         new_preds = new_model.predict(X_combined)
         new_accuracy = accuracy_score(y_combined, new_preds, sample_weight=weights_combined)
-        new_f1 = f1_score(y_combined, new_preds, average='micro', sample_weight=weights_combined)
+        new_f1 = f1_score(y_combined, new_preds, average='weighted', sample_weight=weights_combined)
     except Exception as e:
         print("Errore nella valutazione del nuovo modello domain:", e)
         new_accuracy = 0
