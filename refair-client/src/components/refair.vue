@@ -433,7 +433,15 @@
             <div v-else class="pt-3 mx-4">No sensitive features suggested</div>
           </div>
           <div class="modal-footer">
-            <!-- Download Button-->
+            <ButtonComponent
+              :clickHandler="showRatingModal"
+              buttonType="button"
+              buttonClass="button rating"
+              iconName="star-outline"
+              labelClass="button__text"
+              labelText="Valuta"
+            />
+
             <ButtonComponent
               buttonType="button"
               buttonClass="button report"
@@ -448,6 +456,79 @@
       </div>
     </div>
     <div v-if="activeAnalyzeStoryModal" class="modal-backdrop fade show"></div>
+
+    <!-- Modal per il Rating -->
+    <div
+      v-if="activeRatingModal"
+      class="modal-backdrop fade show"
+      @click="closeRatingModal"
+    ></div>
+    <div
+      v-if="activeRatingModal"
+      class="modal"
+      tabindex="-1"
+      role="dialog"
+      style="display: block;"
+    >
+      <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Rate this Story</h5>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              @click="closeRatingModal"
+            ></button>
+          </div>
+          <div class="modal-body text-center">
+            <!-- Rating per Domain Identification -->
+            <div class="rating-section">
+              <p class="rating-label">How accurate is the domain identification?</p>
+              <div class="rating-container">
+                <span
+                  v-for="star in 5"
+                  :key="'domain-' + star"
+                  class="rating-star"
+                  :class="{ 'selected-star': ratingDomain >= star }"
+                  @click="setRating('domain', star)"
+                >
+                  ★
+                </span>
+              </div>
+              <p class="mt-1">You selected: {{ ratingDomain }} star(s)</p>
+            </div>
+
+            <!-- Rating per Task Identification -->
+            <div class="rating-section">
+              <p class="rating-label">How accurate is the task identification?</p>
+              <div class="rating-container">
+                <span
+                  v-for="star in 5"
+                  :key="'task-' + star"
+                  class="rating-star"
+                  :class="{ 'selected-star': ratingTask >= star }"
+                  @click="setRating('task', star)"
+                >
+                  ★
+                </span>
+              </div>
+              <p class="mt-1">You selected: {{ ratingTask }} star(s)</p>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <ButtonComponent
+              :clickHandler="submitRating"
+              buttonType="button"
+              buttonClass="button submit-rating"
+              iconName="send-outline"
+              labelClass="button__text"
+              labelText="Submit Rating"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -503,6 +584,10 @@ export default {
       storiesPerPage: 30, // Number of user stories per page
       fileLoaded: false, // Variable to track if a file has been loaded
       currentPageInput: 1, // Variable to track the user's input for the page number
+      activeRatingModal: false, // Controlla lo stato della modal
+      ratingDomain: 0,
+      ratingTask: 0,
+      story: "Example User Story", // Esempio di storia
     };
   },
   methods: {
@@ -596,29 +681,47 @@ export default {
     toggleAnalyzeStoryModal(story) {
       if (story) {
         this.story = story;
-        let formData = new FormData();
-        formData.append("story", this.story);
 
+        // Prima chiamata: /predict/domain
         axios
-          .post(server + "/predict/tasks", formData, {
+          .post(server + "/predict/domain", { user_story: this.story }, {
             headers: {
-              "Content-Type": "multipart/form-data",
+              "Content-Type": "application/json",
             },
           })
-          .then((res) => {
-            this.story_domain = res.data.domain;
-            this.story_tasks = res.data.tasks_features;
+          .then((domainRes) => {
+            // Salva il dominio ottenuto
+            const domain = domainRes.data.domain;
+            this.story_domain = domain;
 
-            console.log(this.story_tasks);
+            console.log("Dominio ottenuto:", domain);
+
+            // Seconda chiamata: /predict/tasks
+            let formData = new FormData();
+            formData.append("user_story", this.story);
+            formData.append("domain", domain);
+
+            return axios.post(server + "/predict/tasks", formData, {
+              headers: {
+                "Content-Type": "application/json", // Cambia il content-type per la seconda chiamata
+              },
+            });
+          })
+          .then((tasksRes) => {
+            // Salva i dati ottenuti dalla seconda chiamata
+            this.story_tasks = tasksRes.data.tasks_features;
+
+            console.log("Task ottenuti:", this.story_tasks);
+
             const body = document.querySelector("body");
             this.activeAnalyzeStoryModal = !this.activeAnalyzeStoryModal;
 
             var data = [];
 
-            Object.keys(res.data.features_counts).forEach(function (key) {
+            Object.keys(tasksRes.data.features_counts).forEach(function (key) {
               data.push({
                 x: key,
-                y: [res.data.features_counts[key]],
+                y: [tasksRes.data.features_counts[key]],
               });
             });
 
@@ -636,17 +739,68 @@ export default {
             }
           })
           .catch((error) => {
-            console.error(error);
+            // Gestisci eventuali errori
+            console.error("Errore durante le chiamate:", error);
           });
       }
     },
 
-    // Pagination
-    changePage(page) {
-      if (page > 0 && page <= this.totalPages) {
-        this.currentPage = page;
-        this.currentPageInput = page; // Updates the input of the current page
+    showRatingModal() {
+      this.activeRatingModal = true;
+    },
+
+    closeRatingModal() {
+      this.activeRatingModal = false;
+      this.ratingDomain = 0;
+      this.ratingTask = 0;
+    },
+
+    setRating(type, star) {
+      if (type === "domain") {
+        this.ratingDomain = star;
+      } else if (type === "task") {
+        this.ratingTask = star;
       }
+    },
+
+    submitRating() {
+      // Controlla che entrambi i rating siano stati selezionati
+      if (this.ratingDomain === 0 || this.ratingTask === 0) {
+        alert("Please select a rating for both domain and task identification.");
+        return;
+      }
+
+      // Costruiamo il payload per il feedback del dominio
+      const domainPayload = {
+        user_story: this.story,
+        predicted_domain: this.story_domain,  // Assicurati che questa proprietà sia disponibile
+        feedback_value: this.ratingDomain
+      };
+
+      // Costruiamo il payload per il feedback dei task
+      const tasksPayload = {
+        user_story: this.story,
+        domain: this.story_domain,
+        predicted_tasks: Object.keys(this.story_tasks),
+        feedback_value: this.ratingTask
+      };
+
+      // Invio delle richieste POST in sequenza
+      axios
+        .post("http://127.0.0.1:8080/feedback/domain", domainPayload)
+        .then((responseDomain) => {
+          // Dopo che il feedback per il dominio è stato inviato con successo,
+          // inviamo il feedback per i task.
+          return axios.post("http://127.0.0.1:8080/feedback/tasks", tasksPayload);
+        })
+        .then((responseTasks) => {
+          alert("Rating submitted successfully!");
+          this.closeRatingModal();
+        })
+        .catch((error) => {
+          console.error(error);
+          alert("An error occurred while submitting the rating.");
+        });
     },
 
     // Chapters
@@ -712,3 +866,43 @@ document.addEventListener("DOMContentLoaded", () => {
   fileInput.addEventListener("change", handleStoriesUpload);
 });
 </script>
+
+<style>
+.rating-section {
+  margin-bottom: 20px;
+}
+
+.rating-label {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.rating-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  font-size: 2rem;
+  cursor: pointer;
+}
+
+.rating-star {
+  color: #ccc;
+  transition: color 0.2s;
+}
+
+.rating-star:hover,
+.rating-star.selected-star {
+  color: #ffca28;
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+}
+</style>
