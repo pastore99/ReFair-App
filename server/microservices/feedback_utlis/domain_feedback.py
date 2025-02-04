@@ -6,18 +6,17 @@ import numpy as np
 from transformers import BertTokenizer
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, f1_score
-from copy import deepcopy  # Utilizziamo deepcopy al posto di clone
 from flask import jsonify, request
 
 # Configurazioni e percorsi
 base_dir = os.path.dirname(os.path.abspath(__file__))
-ORIGINAL_DOMAIN_DATASET_FILE = os.path.join(base_dir, '..', '..', 'refair-server', 'datasets', 'Synthetic User Stories.xlsx')
-DOMAIN_FEEDBACK_FILE = os.path.join(base_dir, '..', '..', 'feedback_results', 'domain_feedbacks.json')
+ORIGINAL_DOMAIN_DATASET_FILE = os.path.join(base_dir, '..', '..', 'utils', 'datasets', 'Synthetic User Stories.xlsx')
+DOMAIN_FEEDBACK_FILE = os.path.join(base_dir, '..', '..', 'utils', 'feedback_results', 'domain_feedbacks.json')
 DOMAIN_FEEDBACK_THRESHOLD = 10
 
 # Carica il tokenizer e il modello
 domain_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-with open(os.path.join(base_dir, '..', '..', 'refair-server', 'models', 'XGBClassifier.pkl'), 'rb') as f:
+with open(os.path.join(base_dir, '..', '..', 'utils', 'models', 'XGBClassifier.pkl'), 'rb') as f:
     domain_classifier = pickle.load(f)
 
 # Carica il dataset (per ottenere l'elenco dei domini unici)
@@ -163,7 +162,7 @@ def retrain_domain_model(feedback_list):
 
     if new_accuracy > old_accuracy:
         domain_classifier = new_model
-        model_path = os.path.join(base_dir, '..', '..', 'refair-server', 'models', 'XGBClassifier.pkl')
+        model_path = os.path.join(base_dir, '..', '..', 'utils', 'models', 'XGBClassifier.pkl')
         with open(model_path, 'wb') as f:
             pickle.dump(domain_classifier, f)
         print("Domain classifier aggiornato e salvato con successo.")

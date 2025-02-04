@@ -3,7 +3,6 @@ import json
 from datetime import datetime
 import numpy as np
 from flask import jsonify, request
-from flask_cors import CORS
 import gensim
 import pickle
 import pandas as pd
@@ -16,30 +15,30 @@ base_dir = os.path.dirname(os.path.abspath(__file__))
 # Caricamento dei modelli e dei dati
 # Caricamento di GloVe per ottenere il vettore medio della user story
 glove_vectors = gensim.models.KeyedVectors.load_word2vec_format(
-    os.path.join(base_dir, '..', '..', 'refair-server', 'models', 'glove.6B.100d.txt'),
+    os.path.join(base_dir, '..', '..', 'utils', 'models', 'glove.6B.100d.txt'),
     binary=False,
     no_header=True
 )
 
 # Caricamento del MultiLabelBinarizer e del classificatore (es. LinearSVC con LabelPowerset)
-with open(os.path.join(base_dir, '..', '..', 'refair-server', 'models', 'multilabel.pkl'), 'rb') as f:
+with open(os.path.join(base_dir, '..', '..', 'utils', 'models', 'multilabel.pkl'), 'rb') as f:
     mlb = pickle.load(f)
 
-with open(os.path.join(base_dir, '..', '..', 'refair-server', 'models', 'LinearSVC_LabelPowerset.pkl'), 'rb') as f:
+with open(os.path.join(base_dir, '..', '..', 'utils', 'models', 'LinearSVC_LabelPowerset.pkl'), 'rb') as f:
     lsvc = pickle.load(f)
 
 # Caricamento dei mapping per dominio e task
-domain_task_mapping = pd.read_csv(os.path.join(base_dir, '..', '..', 'refair-server', 'datasets', 'domains-tasks-mapping.csv'))
-domains_mapping = pd.read_csv(os.path.join(base_dir, '..', '..', 'refair-server', 'datasets', 'domains-features-mapping.csv'))
-tasks_mapping = pd.read_csv(os.path.join(base_dir, '..', '..', 'refair-server', 'datasets', 'tasks-features-mapping.csv'))
+domain_task_mapping = pd.read_csv(os.path.join(base_dir, '..', '..', 'utils', 'datasets', 'domains-tasks-mapping.csv'))
+domains_mapping = pd.read_csv(os.path.join(base_dir, '..', '..', 'utils', 'datasets', 'domains-features-mapping.csv'))
+tasks_mapping = pd.read_csv(os.path.join(base_dir, '..', '..', 'utils', 'datasets', 'tasks-features-mapping.csv'))
 
 # ====================================================
 # Costanti per il salvataggio dei feedback e del dataset originale
 # ====================================================
-FEEDBACK_FILE = os.path.join(base_dir, '..', '..', 'feedback_results', 'tasks_feedbacks.json')
+FEEDBACK_FILE = os.path.join(base_dir, '..', '..', 'utils', 'feedback_results', 'tasks_feedbacks.json')
 # Se hai un file JSON per il dataset originale lo usi, altrimenti useremo l'excel
 # ORIGINAL_DATASET_FILE = 'original_dataset.json'
-EXCEL_DATASET_FILE = os.path.join(base_dir, '..', '..', 'refair-server', 'datasets', 'Synthetic User Stories.xlsx')
+EXCEL_DATASET_FILE = os.path.join(base_dir, '..', '..', 'utils', 'datasets', 'Synthetic User Stories.xlsx')
 # Imposta la soglia di feedback per attivare il retraining (modifica secondo le necessità)
 FEEDBACK_THRESHOLD = 10
 
@@ -210,7 +209,7 @@ def retrain_model(feedback_list):
     # Se il nuovo modello performa meglio, sostituisci quello in produzione
     if new_f1 > old_f1:
         lsvc = new_model
-        model_path = os.path.join(base_dir, '..', 'refair-server', 'models', 'LinearSVC_LabelPowerset.pkl')
+        model_path = os.path.join(base_dir, '..', 'utils', 'models', 'LinearSVC_LabelPowerset.pkl')
         with open(model_path, 'wb') as f:
             pickle.dump(lsvc, f)
         print("Modello aggiornato e salvato con successo.")

@@ -1,0 +1,9 @@
+flask
+flask-cors
+transformers
+scikit-learn
+pandas
+openpyxl
+xgboost
+gensim
+scikit-multilearn

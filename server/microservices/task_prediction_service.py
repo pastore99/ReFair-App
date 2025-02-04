@@ -11,17 +11,17 @@ CORS(app, resources={r'/*': {'origins': '*'}})
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Caricamento dei modelli e dei dati
-glove_vectors = gensim.models.KeyedVectors.load_word2vec_format(os.path.join(base_dir, '..', 'refair-server', 'models', 'glove.6B.100d.txt'), binary=False, no_header=True)
+glove_vectors = gensim.models.KeyedVectors.load_word2vec_format(os.path.join(base_dir, '..', 'utils', 'models', 'glove.6B.100d.txt'), binary=False, no_header=True)
 
-with open(os.path.join(base_dir, '..', 'refair-server', 'models', 'multilabel.pkl'), 'rb') as f:
+with open(os.path.join(base_dir, '..', 'utils', 'models', 'multilabel.pkl'), 'rb') as f:
     mlb = pickle.load(f)
 
-with open(os.path.join(base_dir, '..', 'refair-server', 'models', 'LinearSVC_LabelPowerset.pkl'), 'rb') as f:
+with open(os.path.join(base_dir, '..', 'utils', 'models', 'LinearSVC_LabelPowerset.pkl'), 'rb') as f:
     lsvc = pickle.load(f)
 
-domain_task_mapping = pd.read_csv(os.path.join(base_dir, '..', 'refair-server', 'datasets', 'domains-tasks-mapping.csv'))
-domains_mapping = pd.read_csv(os.path.join(base_dir, '..', 'refair-server', 'datasets', 'domains-features-mapping.csv'))
-tasks_mapping = pd.read_csv(os.path.join(base_dir, '..', 'refair-server', 'datasets', 'tasks-features-mapping.csv'))
+domain_task_mapping = pd.read_csv(os.path.join(base_dir, '..', 'utils', 'datasets', 'domains-tasks-mapping.csv'))
+domains_mapping = pd.read_csv(os.path.join(base_dir, '..', 'utils', 'datasets', 'domains-features-mapping.csv'))
+tasks_mapping = pd.read_csv(os.path.join(base_dir, '..', 'utils', 'datasets', 'tasks-features-mapping.csv'))
 
 def intersection(lst1, lst2):
     """Ritorna l'intersezione tra due liste."""

@@ -3,7 +3,6 @@ from flask_cors import CORS
 from transformers import BertTokenizer
 import pickle
 import pandas as pd
-
 import os
 
 # Configurazione Flask
@@ -14,12 +13,12 @@ CORS(app, resources={r'/*': {'origins': '*'}})
 domain_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(base_dir, '..', 'refair-server', 'models', 'XGBClassifier.pkl')
+model_path = os.path.join(base_dir, '..', 'utils', 'models', 'XGBClassifier.pkl')
 with open(model_path, 'rb') as f:
     domain_classifier = pickle.load(f)
 
 # Dataset con i domini
-user_path = os.path.join(base_dir, '..', 'refair-server', 'datasets', 'Synthetic User Stories.xlsx')
+user_path = os.path.join(base_dir, '..', 'utils', 'datasets', 'Synthetic User Stories.xlsx')
 dataset = pd.read_excel(user_path)
 
 @app.route('/predict/domain', methods=['POST'])
