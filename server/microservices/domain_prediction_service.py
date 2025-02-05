@@ -1,36 +1,37 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from transformers import BertTokenizer
-import pickle
-import pandas as pd
-import os
+from services.classifier_factory import  ClassifierFactory
 
 # Configurazione Flask
 app = Flask(__name__)
 CORS(app, resources={r'/*': {'origins': '*'}})
 
-# Caricamento del modello e del tokenizer
-domain_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-
-base_dir = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(base_dir, '..', 'utils', 'models', 'XGBClassifier.pkl')
-with open(model_path, 'rb') as f:
-    domain_classifier = pickle.load(f)
-
-# Dataset con i domini
-user_path = os.path.join(base_dir, '..', 'utils', 'datasets', 'Synthetic User Stories.xlsx')
-dataset = pd.read_excel(user_path)
+# Otteniamo il classificatore corretto dalla Factory
+domain_classifier = ClassifierFactory.get_domain_classifier()
 
 @app.route('/predict/domain', methods=['POST'])
 def predict_domain():
     """
-    Predice il dominio di una user story.
+    Get domain from a single user story.
+
+    request:
+        json like
+        {
+            "user_story": "As a cardiologist, I want to identify multiword expressions in patient notes to identify risk factors for heart disease.",
+        }
+
+    response:
+        json like
+        {
+            "domain": "Cardiology",
+            "status": "success"
+        }
     """
     if not request.is_json:
         return jsonify({
             "status": "failure",
             "motivation": "Request body must be JSON"
-        })
+        }), 400
 
     # Estrae la user story dal corpo della richiesta
     data = request.get_json()
@@ -40,20 +41,20 @@ def predict_domain():
         return jsonify({
             "status": "failure",
             "motivation": "Missing 'user_story' in request"
+        }), 400
+
+    # Predizione
+    try:
+        domain = domain_classifier.predict(user_story)
+        return jsonify({
+            "status": "success",
+            "domain": domain
         })
-
-    # Tokenizzazione e predizione
-    tokenized_data = domain_tokenizer([user_story], padding='max_length', max_length=100, truncation=True)
-    traindata = pd.DataFrame(tokenized_data['input_ids'])
-    traindata.columns = traindata.columns.astype(str)
-    prediction = domain_classifier.predict(traindata)
-
-    domain = dataset["Domain"].unique()[prediction[0]]
-
-    return jsonify({
-        "status": "success",
-        "domain": domain
-    })
+    except Exception as e:
+        return jsonify({
+            "status": "failure",
+            "motivation": f"Prediction error: {str(e)}"
+        }), 500
 
 if __name__ == '__main__':
     app.run(port=5002)

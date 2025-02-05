@@ -1,120 +1,60 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import gensim
-import pickle
-import pandas as pd
-import os
+from services.task_model_service import TaskModelService
+from services.task_preprocessor import TaskPreprocessor
+from services.task_dataset_service import TaskDatasetService
 
-# Configurazione Flask
 app = Flask(__name__)
 CORS(app, resources={r'/*': {'origins': '*'}})
-base_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Caricamento dei modelli e dei dati
-glove_vectors = gensim.models.KeyedVectors.load_word2vec_format(os.path.join(base_dir, '..', 'utils', 'models', 'glove.6B.100d.txt'), binary=False, no_header=True)
-
-with open(os.path.join(base_dir, '..', 'utils', 'models', 'multilabel.pkl'), 'rb') as f:
-    mlb = pickle.load(f)
-
-with open(os.path.join(base_dir, '..', 'utils', 'models', 'LinearSVC_LabelPowerset.pkl'), 'rb') as f:
-    lsvc = pickle.load(f)
-
-domain_task_mapping = pd.read_csv(os.path.join(base_dir, '..', 'utils', 'datasets', 'domains-tasks-mapping.csv'))
-domains_mapping = pd.read_csv(os.path.join(base_dir, '..', 'utils', 'datasets', 'domains-features-mapping.csv'))
-tasks_mapping = pd.read_csv(os.path.join(base_dir, '..', 'utils', 'datasets', 'tasks-features-mapping.csv'))
-
-def intersection(lst1, lst2):
-    """Ritorna l'intersezione tra due liste."""
-    return [value for value in lst1 if value in lst2]
-
-def get_ml_task(user_story, domain):
-    traindata = []
-    for msg in [user_story]:
-        words = msg.split()
-        vecs = []
-        for word in words:
-            if word in glove_vectors:
-                vecs.append(glove_vectors[word])
-        if vecs:
-            vec_avg = sum(vecs) / len(vecs)
-        else:
-            vec_avg = [0] * 100
-        traindata.append(vec_avg)
-    traindata = pd.DataFrame(traindata)
-    traindata.columns = traindata.columns.astype(str)
-
-    # Debug: stampa l'output grezzo della predizione
-    raw_pred = lsvc.predict(traindata.values)
-    print("Raw prediction:", raw_pred)
-    inv_pred = mlb.inverse_transform(raw_pred)
-    print("Inverse transformed prediction:", inv_pred)
-
-    output = []
-    if inv_pred and len(inv_pred) > 0:
-        for prediction in inv_pred[0]:
-            # Debug: stampa la predizione corrente
-            print("Predicted task:", prediction)
-            for index in domain_task_mapping.index:
-                domain_val = domain_task_mapping['Domain'][index].lower()
-                task_val = domain_task_mapping['Task'][index].lower()
-                if (domain_val == domain.lower() and task_val == prediction.lower()):
-                    output.append(prediction)
-    return output
-
-def feature_extraction(domain, mltasks):
-    """
-    Estrae le feature sensibili rilevanti per il dominio e i task ML.
-    """
-    out_features = {}
-
-    # Feature del dominio
-    domain_features = []
-    for index in domains_mapping.index:
-        if domains_mapping['Domain'][index].lower() == domain.lower():
-            domain_features.append(domains_mapping['Feature'][index])
-
-    # Feature per ogni task
-    for task in mltasks:
-        tmp = []
-        for index in tasks_mapping.index:
-            if tasks_mapping['Task'][index].lower() == task.lower():
-                tmp.append(tasks_mapping['Feature'][index])
-        out_features[task] = intersection(tmp, domain_features)
-
-    return out_features
+# Dependency Injection
+model_service = TaskModelService()
+preprocessor = TaskPreprocessor(model_service.glove_vectors)
+dataset_service = TaskDatasetService()
 
 @app.route('/predict/tasks', methods=['POST'])
 def predict_tasks():
     """
-    Predice i task ML e le feature sensibili da una user story e un dominio.
+    Get tasks from user story and its domain.
+
+    request:
+        json like
+        {
+            "user_story": "As a cardiologist, I want to identify multiword expressions in patient notes to identify risk factors for heart disease.",
+            "domain": "Cardiology"
+        }
+
+    response:
+        json like
+        {
+            "status": "success",
+            "tasks": ["classification", "ranking"],
+            "tasks_features": {
+                "classification": ["race", "age", "sex"],
+                "ranking": ["race", "age", "sex"]
+            }
+        }
     """
     if not request.is_json:
-        return jsonify({
-            "status": "failure",
-            "motivation": "Request body must be JSON"
-        })
+        return jsonify({"status": "failure", "motivation": "Request body must be JSON"})
 
-    # Estrai user story e dominio dal corpo della richiesta
     data = request.get_json()
     user_story = data.get('user_story')
     domain = data.get('domain')
-    # aggiungere controllo per prendere domain in input se presente altrimenti si fa get_domain
 
     if not user_story or not domain:
-        return jsonify({
-            "status": "failure",
-            "motivation": "Missing 'user_story' or 'domain' in request"
-        })
+        return jsonify({"status": "failure", "motivation": "Missing 'user_story' or 'domain' in request"})
 
-    # Predizione dei task e delle feature
-    ml_tasks = get_ml_task(user_story, domain)
-    tasks_features = feature_extraction(domain, ml_tasks)
+    try:
+        vectorized_text = preprocessor.preprocess(user_story)
+        predicted_tasks = model_service.predict_task(vectorized_text)
+        ml_tasks = dataset_service.get_tasks_for_domain(domain, predicted_tasks)
+        tasks_features = dataset_service.extract_features(domain, ml_tasks)
 
-    return jsonify({
-        "status": "success",
-        "tasks": ml_tasks,
-        "tasks_features": tasks_features
-    })
+        return jsonify({"status": "success", "tasks": ml_tasks, "tasks_features": tasks_features})
+
+    except Exception as e:
+        return jsonify({"status": "failure", "motivation": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(port=5003)

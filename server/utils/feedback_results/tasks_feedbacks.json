@@ -76,16 +76,12 @@
     },
     {
         "user_story": "As a cardiologist, I want to identify multiword expressions in patient notes to identify risk factors for heart disease.",
-        "domain": "Cardiology",
-        "predicted_tasks": null,
-        "feedback_value": 5.0,
-        "timestamp": "2025-02-01T16:56:04.060954"
-    },
-    {
-        "user_story": "As a cardiologist, I want to identify multiword expressions in patient notes to identify risk factors for heart disease.",
-        "domain": "Cardiology",
-        "predicted_tasks": null,
-        "feedback_value": 5.0,
-        "timestamp": "2025-02-01T17:00:57.611166"
+        "domain": "cardiology",
+        "predicted_tasks": [
+            "Identify Multiword Expressions",
+            "Risk Factor Analysis"
+        ],
+        "feedback_value": 5,
+        "timestamp": "2025-02-05T21:59:03.685329"
     }
 ]

@@ -54,21 +54,9 @@
         "timestamp": "2025-02-01T15:22:49.581502"
     },
     {
-        "user_story": "As a cardiologist, I want to identify multiword expressions in patient notes to identify risk factors for heart disease.",
-        "predicted_domain": "Cardiology",
-        "feedback_value": 5.0,
-        "timestamp": "2025-02-01T15:48:44.068805"
-    },
-    {
-        "user_story": "As a cardiologist, I want to identify multiword expressions in patient notes to identify risk factors for heart disease.",
-        "predicted_domain": "Cardiology",
-        "feedback_value": 5.0,
-        "timestamp": "2025-02-01T16:55:50.954822"
-    },
-    {
-        "user_story": "As a cardiologist, I want to identify multiword expressions in patient notes to identify risk factors for heart disease.",
-        "predicted_domain": "Cardiology",
-        "feedback_value": 5.0,
-        "timestamp": "2025-02-01T17:00:44.134373"
+        "user_story": "As an orthopedic surgeon, I want to review X-ray images to identify bone fractures quickly.",
+        "predicted_domain": "orthopedics",
+        "feedback_value": 4,
+        "timestamp": "2025-02-05T21:46:25.843749"
     }
 ]

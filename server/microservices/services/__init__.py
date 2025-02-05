@@ -1,0 +1,2 @@
+class ClassifierFactory:
+    pass
