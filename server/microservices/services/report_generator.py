@@ -5,7 +5,12 @@ class ReportGenerator:
         self.prediction_service = prediction_service
 
     def generate(self, user_stories):
-        """Genera il report analizzando le user stories."""
+        """
+        Generate report from list of user story
+
+        :param user_stories: list of user story
+        :return: domain end tasks predictions
+        """
         analyzed_stories = []
 
         for story in user_stories:

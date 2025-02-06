@@ -3,6 +3,9 @@ import pandas as pd
 
 class TaskDatasetService:
     def __init__(self):
+        """
+        Get dir path end check path of datasets
+        """
         base_dir = os.path.dirname(os.path.abspath(__file__))
 
         domain_task_path = os.path.join(base_dir, '..', '..', 'utils', 'datasets', 'domains-tasks-mapping.csv')
@@ -17,6 +20,13 @@ class TaskDatasetService:
         self.tasks_mapping = pd.read_csv(tasks_mapping_path)
 
     def get_tasks_for_domain(self, domain, predicted_tasks):
+        """
+        Get features from domain and tasks after predictions services
+
+        :param domain: domain from extract features
+        :param predicted_tasks: tasks from extract features
+        :return:
+        """
         if not isinstance(domain, str):
             raise TypeError(f"Expected domain as str, got {type(domain)}")
         output = []
@@ -34,6 +44,13 @@ class TaskDatasetService:
         return output
 
     def extract_features(self, domain, tasks):
+        """
+        extract features from domain and tasks
+
+        :param domain: domain form extract features
+        :param tasks: tasks from extract features
+        :return:
+        """
         if not isinstance(domain, str):
             raise TypeError(f"Expected domain as str, got {type(domain)}")
         domain_features = self.domains_mapping[self.domains_mapping['Domain'].astype(str).str.lower() == domain.lower()]['Feature'].tolist()

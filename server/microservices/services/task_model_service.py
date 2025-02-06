@@ -5,6 +5,9 @@ import pandas as pd
 
 class TaskModelService:
     def __init__(self):
+        """
+        load modal from extract features
+        """
         base_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Caricamento GloVe
@@ -27,6 +30,12 @@ class TaskModelService:
             self.lsvc = pickle.load(f)
 
     def predict_task(self, vectorized_text):
+        """
+        Predict tasks from vectorized text
+
+        :param vectorized_text: domain and tasks vectorized
+        :return: features extracted
+        """
         raw_pred = self.lsvc.predict(vectorized_text)
         inv_pred = self.mlb.inverse_transform(raw_pred)  # Output: [('task1', 'task2'), ('task3', 'task4')]
         flat_tasks = [task for tasks_tuple in inv_pred for task in tasks_tuple]
