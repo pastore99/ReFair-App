@@ -2,12 +2,12 @@
 refair-server/.vscode/
 
 #### GloVe 100d word embeddings
-refair-server/models/glove.6B.100d.txt
+server/utils/models/glove.6B.100d.txt
 
 #### Virtual environments, etc.
 refair-server/__pycache__/
-desktop_app/__pycache__
-desktop_app/components/__pycache__
+client/desktop_app/__pycache__
+client/desktop_app/components/__pycache__
 refair-server/env/
 system_tests/env/
 refair-server/.pytest_cache/

@@ -1,0 +1,62 @@
+[
+    {
+        "user_story": "As an orthopedic surgeon, I want to review X-ray images to identify bone fractures quickly.",
+        "predicted_domain": "orthopedics",
+        "feedback_value": 4,
+        "timestamp": "2025-02-01T14:45:02.806511"
+    },
+    {
+        "user_story": "As an orthopedic surgeon, I want to review X-ray images to identify bone fractures quickly.",
+        "predicted_domain": "orthopedics",
+        "feedback_value": 4,
+        "timestamp": "2025-02-01T15:03:38.571329"
+    },
+    {
+        "user_story": "As an orthopedic surgeon, I want to review X-ray images to identify bone fractures quickly.",
+        "predicted_domain": "orthopedics",
+        "feedback_value": 4,
+        "timestamp": "2025-02-01T15:05:11.441373"
+    },
+    {
+        "user_story": "As an orthopedic surgeon, I want to review X-ray images to identify bone fractures quickly.",
+        "predicted_domain": "orthopedics",
+        "feedback_value": 4,
+        "timestamp": "2025-02-01T15:11:40.577052"
+    },
+    {
+        "user_story": "As a cardiologist, I want to identify multiword expressions in patient notes to identify risk factors for heart disease.",
+        "predicted_domain": "Cardiology",
+        "feedback_value": 5,
+        "timestamp": "2025-02-01T15:19:26.805455"
+    },
+    {
+        "user_story": "As a transportation planner, I want to use inverse reinforcement learning to understand the underlying motivations and decision-making processes of drivers, so that I can improve traffic management and reduce accidents.",
+        "predicted_domain": "Transportation",
+        "feedback_value": 5,
+        "timestamp": "2025-02-01T15:20:27.355443"
+    },
+    {
+        "user_story": "As a pharmacologist, I want to use voice activity detection to analyze audio recordings of patient interactions and identify patterns in speech and language use that could indicate adverse drug reactions so that I can develop safer and more effective treatments for a variety of conditions.",
+        "predicted_domain": "Pharmacology",
+        "feedback_value": 5,
+        "timestamp": "2025-02-01T15:20:59.227911"
+    },
+    {
+        "user_story": "As a radiologist, I want to use the junction tree algorithm to model complex medical imaging systems and improve diagnostic accuracy by identifying critical features and relationships between images.",
+        "predicted_domain": "Radiology",
+        "feedback_value": 5,
+        "timestamp": "2025-02-01T15:22:33.031341"
+    },
+    {
+        "user_story": "As a health researcher, I want to use computational argumentation to analyze and evaluate the effectiveness of different healthcare policies.",
+        "predicted_domain": "Health",
+        "feedback_value": 5,
+        "timestamp": "2025-02-01T15:22:49.581502"
+    },
+    {
+        "user_story": "As an orthopedic surgeon, I want to review X-ray images to identify bone fractures quickly.",
+        "predicted_domain": "orthopedics",
+        "feedback_value": 4,
+        "timestamp": "2025-02-05T21:46:25.843749"
+    }
+]
