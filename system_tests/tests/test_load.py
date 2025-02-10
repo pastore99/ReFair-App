@@ -929,3 +929,57 @@ class TestLoad:
         except TimeoutException:
             assert False, "Alert with the message '" + \
                 expected_alert_message + "' did not appear."
+
+
+    def test_feedback_submission(self, driver, load_tc_5_fixture):
+        """
+        Test di sistema per la feedback_service.
+        1. Caricare il file con user stories.
+        2. Cliccare 'Analyze' sulla prima user story.
+        3. Cliccare 'Valuta' per aprire la finestra di valutazione.
+        4. Selezionare 5 stelle per il dominio e 4 per il task.
+        5. Premere 'Submit Rating' e verificare il successo.
+        """
+
+        driver.get("http://localhost:5173/")
+
+        # **Step 1: Caricare il file**
+        file_input = driver.find_element(By.CSS_SELECTOR, ".form-control")
+        file_input.send_keys(load_tc_5_fixture)  # Usa il fixture con un file valido
+        driver.find_element(By.CSS_SELECTOR, ".load").click()
+
+        # **Aspetta che le user stories vengano caricate**
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "table tbody tr"))
+        )
+
+        # **Step 2: Cliccare "Analyze" sulla prima user story**
+        analyze_button = driver.find_element(By.CSS_SELECTOR, "table tbody tr:first-child .analyze")
+        analyze_button.click()
+
+        # **Step 3: Cliccare "Valuta" per aprire la finestra di valutazione**
+        rate_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, ".button.rating"))
+        )
+        rate_button.click()
+
+        # **Step 4: Selezionare il rating per dominio e task**
+        stars_domain = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".rating-section:nth-of-type(1) .rating-container span"))
+        )
+        stars_domain[4].click()  # Seleziona 5 stelle per il dominio
+
+        stars_task = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".rating-section:nth-of-type(2) .rating-container span"))
+        )
+        stars_task[3].click()  # Seleziona 4 stelle per il task
+
+        # **Step 5: Premere "Submit Rating"**
+        submit_button = driver.find_element(By.CSS_SELECTOR, ".button.submit-rating")
+        submit_button.click()
+
+        # **Verifica del successo**
+        WebDriverWait(driver, 5).until(EC.alert_is_present())
+        alert = driver.switch_to.alert
+        assert "Rating submitted successfully!" in alert.text
+        alert.accept()
