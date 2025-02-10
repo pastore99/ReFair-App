@@ -32,10 +32,17 @@ def stories_load():
             ]
         }
     """
+    if 'stories' not in request.files:
+        return jsonify({"status": "failure", "motivation": "No file provided"}), 400
+
     file = request.files['stories']
     files = {'stories': (file.filename, file.stream, file.mimetype)}
-    response = requests.post(f"{MICROSERVICES['file_management']}/storiesload", files=files)
-    return jsonify(response.json()), response.status_code
+
+    try:
+        response = requests.post(f"{MICROSERVICES['file_management']}/storiesload", files=files)
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.ConnectionError:
+        return jsonify({"status": "failure", "motivation": "File Management Service is unavailable"}), 500
 
 @app.route('/predict/domain', methods=['POST'])
 def predict_domain():
@@ -55,9 +62,16 @@ def predict_domain():
             "status": "success"
         }
     """
+    if not request.is_json:
+        return jsonify({"status": "failure", "motivation": "Request body must be JSON"}), 400
+
     data = request.get_json()
-    response = requests.post(f"{MICROSERVICES['domain_prediction']}/predict/domain", json=data)
-    return jsonify(response.json()), response.status_code
+
+    try:
+        response = requests.post(f"{MICROSERVICES['domain_prediction']}/predict/domain", json=data)
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.ConnectionError:
+        return jsonify({"status": "failure", "motivation": "Domain Prediction Service is unavailable"}), 500
 
 @app.route('/predict/tasks', methods=['POST'])
 def predict_tasks():
@@ -82,9 +96,16 @@ def predict_tasks():
             }
         }
     """
+    if not request.is_json:
+        return jsonify({"status": "failure", "motivation": "Request body must be JSON"}), 400
+
     data = request.get_json()
-    response = requests.post(f"{MICROSERVICES['task_prediction']}/predict/tasks", json=data)
-    return jsonify(response.json()), response.status_code
+
+    try:
+        response = requests.post(f"{MICROSERVICES['task_prediction']}/predict/tasks", json=data)
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.ConnectionError:
+        return jsonify({"status": "failure", "motivation": "Task Prediction Service is unavailable"}), 500
 
 @app.route('/generate/report', methods=['POST'])
 def generate_report():
@@ -120,9 +141,16 @@ def generate_report():
             }
         ]
     """
+    if not request.is_json:
+        return jsonify({"status": "failure", "motivation": "Request body must be JSON"}), 400
+
     data = request.get_json()
-    response = requests.post(f"{MICROSERVICES['report_generation']}/generate/report", json=data)
-    return response.content, response.status_code, {"Content-Type": "application/json"}
+
+    try:
+        response = requests.post(f"{MICROSERVICES['report_generation']}/generate/report", json=data)
+        return response.content, response.status_code, {"Content-Type": "application/json"}
+    except requests.exceptions.ConnectionError:
+        return jsonify({"status": "failure", "motivation": "Report Generation Service is unavailable"}), 500
 
 @app.route('/feedback/domain', methods=['POST'])
 def feedback_domain():
@@ -139,9 +167,16 @@ def feedback_domain():
     response:
         json ack
     """
+    if not request.is_json:
+        return jsonify({"status": "failure", "motivation": "Request body must be JSON"}), 400
+
     data = request.get_json()
-    response = requests.post(f"{MICROSERVICES['feedback']}/feedback/domain", json=data)
-    return response.content, response.status_code, {"Content-Type": "application/json"}
+
+    try:
+        response = requests.post(f"{MICROSERVICES['feedback']}/feedback/domain", json=data)
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.ConnectionError:
+        return jsonify({"status": "failure", "motivation": "Feedback Service is unavailable"}), 500
 
 @app.route('/feedback/tasks', methods=['POST'])
 def feedback_tasks():
@@ -159,9 +194,16 @@ def feedback_tasks():
     response:
         json ack
     """
+    if not request.is_json:
+        return jsonify({"status": "failure", "motivation": "Request body must be JSON"}), 400
+
     data = request.get_json()
-    response = requests.post(f"{MICROSERVICES['feedback']}/feedback/tasks", json=data)
-    return response.content, response.status_code, {"Content-Type": "application/json"}
+
+    try:
+        response = requests.post(f"{MICROSERVICES['feedback']}/feedback/tasks", json=data)
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.ConnectionError:
+        return jsonify({"status": "failure", "motivation": "Feedback Service is unavailable"}), 500
 
 if __name__ == '__main__':
     app.run(port=8080)
