@@ -26,27 +26,40 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r server/envs/requirements.txt
 
+      - name: Create virtual environments if not exist
+        run: |
+          python -m venv server/envs/domain_prediction_env
+          python -m venv server/envs/tasks_prediction_env
+          python -m venv server/envs/file_management_env
+          python -m venv server/envs/report_generation_env
+          python -m venv server/envs/feedback_env
+          python -m venv server/envs/api_gateway_env
+
       # 3) AVVIO DEI MICROSERVIZI E API GATEWAY
       - name: Start microservices and API Gateway
         run: |
-          chmod +x server/envs/domain_prediction_env/bin/activate
-          chmod +x server/envs/tasks_prediction_env/bin/activate
-          chmod +x server/envs/file_management_env/bin/activate
-          chmod +x server/envs/report_generation_env/bin/activate
-          chmod +x server/envs/feedback_env/bin/activate
-          chmod +x server/envs/api_gateway_env/bin/activate
+          source server/envs/domain_prediction_env/bin/activate && pip install -r server/microservices/requirements.txt
+          nohup python server/microservices/domain_prediction_service.py &
+          sleep 2
           
-          nohup bash -c "source server/envs/domain_prediction_env/bin/activate && python server/microservices/domain_prediction_service.py" &
+          source server/envs/tasks_prediction_env/bin/activate && pip install -r server/microservices/requirements.txt
+          nohup python server/microservices/task_prediction_service.py &
           sleep 2
-          nohup bash -c "source server/envs/tasks_prediction_env/bin/activate && python server/microservices/task_prediction_service.py" &
+          
+          source server/envs/file_management_env/bin/activate && pip install -r server/microservices/requirements.txt
+          nohup python server/microservices/file_management_service.py &
           sleep 2
-          nohup bash -c "source server/envs/file_management_env/bin/activate && python server/microservices/file_management_service.py" &
+          
+          source server/envs/report_generation_env/bin/activate && pip install -r server/microservices/requirements.txt
+          nohup python server/microservices/report_generation_service.py &
           sleep 2
-          nohup bash -c "source server/envs/report_generation_env/bin/activate && python server/microservices/report_generation_service.py" &
+          
+          source server/envs/feedback_env/bin/activate && pip install -r server/microservices/requirements.txt
+          nohup python server/microservices/feedback_service.py &
           sleep 2
-          nohup bash -c "source server/envs/feedback_env/bin/activate && python server/microservices/feedback_service.py" &
-          sleep 2
-          nohup bash -c "source server/envs/api_gateway_env/bin/activate && python server/api_gateway/api_gateway.py" &
+          
+          source server/envs/api_gateway_env/bin/activate && pip install -r server/microservices/requirements.txt
+          nohup python server/api_gateway/api_gateway.py &
           sleep 2
 
       # 4) SETUP NODE + AVVIO CLIENT
