@@ -7,3 +7,4 @@ openpyxl
 xgboost
 gensim
 scikit-multilearn
+requests

@@ -657,8 +657,15 @@ export default {
     submitFile() {
       if (!this.file) {
         alert('No file loaded');
-        return; // Interrompe l'operazione se nessun file è selezionato
+        return;
       }
+
+      const fileExtension = this.file.name.split('.').pop().toLowerCase();
+        if (fileExtension !== "xlsx") {
+          alert("This type of file is not supported. Upload an xlsx file.");
+          return;
+        }
+
       let formData = new FormData();
       formData.append("stories", this.file);
 
@@ -669,21 +676,32 @@ export default {
           },
         })
         .then((res) => {
-          if (typeof res.data.stories === "undefined") {
-            alert(res.data.motivation);
+          console.log("Response data:", res.data); // Debug: verifica la struttura della risposta
+
+          if (res.data.error) {
+            alert("Error: " + res.data.error);
             this.stories = [];
-            this.fileLoaded = false; // Set to false if the upload fails
+            this.fileLoaded = false;
+          } else if (res.data.stories && res.data.stories.stories) {
+            // Se la risposta è strutturata correttamente, estraiamo l'array di storie
+            this.stories = res.data.stories.stories;
+            this.currentPage = 1;
+            this.fileLoaded = true;
+
+            if (res.data.stories.warning) {
+              alert(res.data.stories.warning);
+            }
           } else {
-            const reportBtn = document.querySelector("#report");
-            reportBtn.classList.remove("disabled");
-            this.stories = res.data.stories;
-            this.currentPage = 1; // Reset the current page after loading
-            this.fileLoaded = true; // Set to true if the upload succeeds
+            console.error("Invalid response format:", res.data);
+            alert("Invalid response format received from server.");
+            this.stories = []; // Evita problemi con .slice()
           }
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error("Upload failed:", error);
+          alert("Error uploading file. Please check the console.");
           this.stories = [];
-          this.fileLoaded = false; // Set to false if the upload fails
+          this.fileLoaded = false;
         });
     },
 

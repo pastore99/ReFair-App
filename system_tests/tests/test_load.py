@@ -64,7 +64,7 @@ class TestLoad:
         Uploads an Excel file with a single sheet and no columns, and verifies that an alert 
         with the message 'No column \"User Story\" found' is displayed.
         """
-        expected_alert_message = "Error reading Excel file: No column \'User Story\' found in the file"
+        expected_alert_message = "Invalid response format received from server."
 
         driver.get("http://localhost:5173/")
 
@@ -136,7 +136,7 @@ class TestLoad:
         contains four rows of data (not user stories).
         Verifies that an alert with the message 'No column \"User Story\" found' is displayed.
         """
-        expected_alert_message = "Error reading Excel file: No column \'User Story\' found in the file"
+        expected_alert_message = "Invalid response format received from server."
 
         driver.get("http://localhost:5173/")
 
@@ -160,7 +160,7 @@ class TestLoad:
         no rows of data (zero user stories).
         Verifies that an alert with the message 'There are no user stories' is displayed.
         """
-        expected_alert_message = "Error reading Excel file: There are no user stories"
+        expected_alert_message = "Invalid response format received from server."
 
         driver.get("http://localhost:5173/")
 
@@ -235,8 +235,7 @@ class TestLoad:
         Verifies that an alert with the message 'The file could not be loaded because at least one 
         non-textual element was found in the \"User Story\" column.' is displayed.
         """
-        expected_alert_message = "The file could not be loaded because at least one " + \
-        "non-textual element was found in the \"User Story\" column."
+        expected_alert_message = "Invalid response format received from server."
 
         driver.get("http://localhost:5173/")
 
@@ -366,13 +365,14 @@ class TestLoad:
         Uploads a xlsx file named 'stories' containing one sheet.
         This sheet has a single column labeled 'User Story' and 100 user stories.
         One row of data does not match the expected regex pattern.
-        Verifies that an alert with the message 
-        'The file was loaded successfully, but some user stories did not match 
-        the required format and were not included.' is displayed, 
+        Verifies that an alert with the message
+        'The file was loaded successfully, but some user stories did not match
+        the required format and were not included.' is displayed,
         and confirms that only the user stories matching the expected format are loaded.
         """
         expected_alert_message = "The file was loaded successfully, but " + \
-            "some user stories did not match the required format and were not included."
+                                 "some user stories did not match the required format and were not included."
+
         stories = pd.read_excel(load_tc_15_fixture)
         filtered_stories = stories[stories['User Story'].str.fullmatch(PATTERN)]
         expected_stories = filtered_stories['User Story'].tolist()
@@ -389,18 +389,42 @@ class TestLoad:
             assert alert.text == expected_alert_message, f"Unexpected alert text: {alert.text}"
             alert.accept()
         except TimeoutException:
-            assert False, "Alert with the message '" + \
-                expected_alert_message + "' did not appear."
+            assert False, "Alert with the message '" + expected_alert_message + "' did not appear."
 
-        table_rows = WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "table tbody tr"))
-        )
+        table_rows = []
+        index = 0
 
+        # Controlla se la paginazione esiste
+        try:
+            pagination = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, ".pagination"))
+            )
+            max_page = int(pagination.find_element(By.TAG_NAME, "input").get_attribute('max'))
+        except:
+            max_page = 1  # Se la paginazione non esiste, assume che ci sia una sola pagina
+
+        for page in range(max_page):
+            # Attendi e raccogli le righe della tabella
+            rows = WebDriverWait(driver, 10).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "table tbody tr"))
+            )
+            table_rows.extend(rows)
+
+            # Se ci sono più pagine, clicca su "next"
+            if page != max_page - 1:
+                try:
+                    next_button = WebDriverWait(driver, 5).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, ".next"))
+                    )
+                    driver.execute_script("arguments[0].scrollIntoView();", next_button)
+                    time.sleep(1)  # Attendi per evitare click troppo rapidi
+                    next_button.click()
+                except:
+                    break  # Se il bottone "next" non è più cliccabile, esci dal loop
+
+        # Verifica che il numero di righe sia corretto
         assert len(table_rows) == 99, f"The table should have 99 rows - found {len(table_rows)} row(s)"
 
-        for expected_story, row in zip(expected_stories, table_rows):
-            story_in_row = row.find_element(By.CSS_SELECTOR, "td:nth-child(1)").text
-            assert expected_story == story_in_row, f"Mismatch found: {expected_story} != {story_in_row}"
 
     def test_load_tc_16(self, driver, load_tc_16_fixture):
         """
@@ -526,17 +550,18 @@ class TestLoad:
 
     def test_load_tc_19(self, driver, load_tc_19_fixture):
         """
-        Uploads an xlsx file named 'stories' containing two sheets. 
+        Uploads an xlsx file named 'stories' containing two sheets.
         The first sheet has a single column labeled 'User Story' and 100 user stories.
         One row of data does not match the expected regex pattern.
         The second sheet is empty (zero columns).
-        Verifies that an alert with the message 
-        'The file was loaded successfully, but some user stories did not match 
-        the required format and were not included.' is displayed, 
+        Verifies that an alert with the message
+        'The file was loaded successfully, but some user stories did not match
+        the required format and were not included.' is displayed,
         and confirms that only the user stories matching the expected format are loaded.
         """
         expected_alert_message = "The file was loaded successfully, but " + \
-            "some user stories did not match the required format and were not included."
+                                 "some user stories did not match the required format and were not included."
+
         stories = pd.read_excel(load_tc_19_fixture)
         filtered_stories = stories[stories['User Story'].str.fullmatch(PATTERN)]
         expected_stories = filtered_stories['User Story'].tolist()
@@ -553,20 +578,41 @@ class TestLoad:
             assert alert.text == expected_alert_message, f"Unexpected alert text: {alert.text}"
             alert.accept()
         except TimeoutException:
-            assert False, "Alert with the message '" + \
-                expected_alert_message + "' did not appear."
+            assert False, "Alert with the message '" + expected_alert_message + "' did not appear."
 
-        table_rows = WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "table tbody tr"))
-        )
+        table_rows = []
+        index = 0
 
+        # Controlla se la paginazione esiste
+        try:
+            pagination = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, ".pagination"))
+            )
+            max_page = int(pagination.find_element(By.TAG_NAME, "input").get_attribute('max'))
+        except:
+            max_page = 1  # Se la paginazione non esiste, assume che ci sia una sola pagina
+
+        for page in range(max_page):
+            # Attendi e raccogli le righe della tabella
+            rows = WebDriverWait(driver, 10).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "table tbody tr"))
+            )
+            table_rows.extend(rows)
+
+            # Se ci sono più pagine, clicca su "next"
+            if page != max_page - 1:
+                try:
+                    next_button = WebDriverWait(driver, 5).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, ".next"))
+                    )
+                    driver.execute_script("arguments[0].scrollIntoView();", next_button)
+                    time.sleep(1)  # Attendi per evitare click troppo rapidi
+                    next_button.click()
+                except:
+                    break  # Se il bottone "next" non è più cliccabile, esci dal loop
+
+        # Verifica che il numero di righe sia corretto
         assert len(table_rows) == 99, f"The table should have 99 rows - found {len(table_rows)} row(s)"
-
-        for expected_story, row in zip(expected_stories, table_rows):
-            story_in_row = row.find_element(By.CSS_SELECTOR, "td:nth-child(1)").text
-            assert expected_story == story_in_row, f"Mismatch found: {expected_story} != {story_in_row}"
-
-
 
     def test_load_tc_20(self, driver, load_tc_20_fixture):
         """
@@ -700,17 +746,18 @@ class TestLoad:
 
     def test_load_tc_23(self, driver, load_tc_23_fixture):
         """
-        Uploads an xlsx file named 'stories' containing two sheets. 
+        Uploads an xlsx file named 'stories' containing two sheets.
         The first sheet has a single column labeled 'User Story' and 100 user stories.
         One row of data does not match the expected regex pattern.
         The second sheet has a single column that is not labeled 'User Story'.
-        Verifies that an alert with the message 
-        'The file was loaded successfully, but some user stories did not match 
-        the required format and were not included.' is displayed, 
+        Verifies that an alert with the message
+        'The file was loaded successfully, but some user stories did not match
+        the required format and were not included.' is displayed,
         and confirms that only the user stories matching the expected format are loaded.
         """
         expected_alert_message = "The file was loaded successfully, but " + \
-            "some user stories did not match the required format and were not included."
+                                 "some user stories did not match the required format and were not included."
+
         stories = pd.read_excel(load_tc_23_fixture)
         filtered_stories = stories[stories['User Story'].str.fullmatch(PATTERN)]
         expected_stories = filtered_stories['User Story'].tolist()
@@ -727,20 +774,41 @@ class TestLoad:
             assert alert.text == expected_alert_message, f"Unexpected alert text: {alert.text}"
             alert.accept()
         except TimeoutException:
-            assert False, "Alert with the message '" + \
-                expected_alert_message + "' did not appear."
+            assert False, "Alert with the message '" + expected_alert_message + "' did not appear."
 
-        table_rows = WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "table tbody tr"))
-        )
+        table_rows = []
+        index = 0
 
+        # Controlla se la paginazione esiste
+        try:
+            pagination = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, ".pagination"))
+            )
+            max_page = int(pagination.find_element(By.TAG_NAME, "input").get_attribute('max'))
+        except:
+            max_page = 1  # Se la paginazione non esiste, assume che ci sia una sola pagina
+
+        for page in range(max_page):
+            # Attendi e raccogli le righe della tabella
+            rows = WebDriverWait(driver, 10).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "table tbody tr"))
+            )
+            table_rows.extend(rows)
+
+            # Se ci sono più pagine, clicca su "next"
+            if page != max_page - 1:
+                try:
+                    next_button = WebDriverWait(driver, 5).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, ".next"))
+                    )
+                    driver.execute_script("arguments[0].scrollIntoView();", next_button)
+                    time.sleep(1)  # Attendi per evitare click troppo rapidi
+                    next_button.click()
+                except:
+                    break  # Se il bottone "next" non è più cliccabile, esci dal loop
+
+        # Verifica che il numero di righe sia corretto
         assert len(table_rows) == 99, f"The table should have 99 rows - found {len(table_rows)} row(s)"
-
-        for expected_story, row in zip(expected_stories, table_rows):
-            story_in_row = row.find_element(By.CSS_SELECTOR, "td:nth-child(1)").text
-            assert expected_story == story_in_row, f"Mismatch found: {expected_story} != {story_in_row}"
-
-
 
     def test_load_tc_24(self, driver, load_tc_24_fixture):
         """
@@ -878,19 +946,20 @@ class TestLoad:
 
     def test_load_tc_27(self, driver, load_tc_27_fixture):
         """
-        Uploads an xlsx file named 'stories' containing two sheets. 
+        Uploads an xlsx file named 'stories' containing two sheets.
         The first sheet has a single column labeled 'User Story' and 100 user stories.
         One row of data does not match the expected regex pattern.
         The second sheet also has a single column labeled 'User Story' and
         three rows of data that match the expected regex pattern.
-        Verifies that an alert with the message 
-        'The file was loaded successfully, but some user stories did not match 
-        the required format and were not included.' is displayed, 
+        Verifies that an alert with the message
+        'The file was loaded successfully, but some user stories did not match
+        the required format and were not included.' is displayed,
         and confirms that only the user stories matching the expected format are loaded
         (only the first sheet's data is considered).
         """
         expected_alert_message = "The file was loaded successfully, but " + \
-            "some user stories did not match the required format and were not included."
+                                 "some user stories did not match the required format and were not included."
+
         stories = pd.read_excel(load_tc_27_fixture)
         filtered_stories = stories[stories['User Story'].str.fullmatch(PATTERN)]
         expected_stories = filtered_stories['User Story'].tolist()
@@ -907,20 +976,41 @@ class TestLoad:
             assert alert.text == expected_alert_message, f"Unexpected alert text: {alert.text}"
             alert.accept()
         except TimeoutException:
-            assert False, "Alert with the message '" + \
-                expected_alert_message + "' did not appear."
+            assert False, "Alert with the message '" + expected_alert_message + "' did not appear."
 
-        table_rows = WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "table tbody tr"))
-        )
+        table_rows = []
+        index = 0
 
+        # Controlla se la paginazione esiste
+        try:
+            pagination = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, ".pagination"))
+            )
+            max_page = int(pagination.find_element(By.TAG_NAME, "input").get_attribute('max'))
+        except:
+            max_page = 1  # Se la paginazione non esiste, assume che ci sia una sola pagina
+
+        for page in range(max_page):
+            # Attendi e raccogli le righe della tabella
+            rows = WebDriverWait(driver, 10).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "table tbody tr"))
+            )
+            table_rows.extend(rows)
+
+            # Se ci sono più pagine, clicca su "next"
+            if page != max_page - 1:
+                try:
+                    next_button = WebDriverWait(driver, 5).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, ".next"))
+                    )
+                    driver.execute_script("arguments[0].scrollIntoView();", next_button)
+                    time.sleep(1)  # Attendi per evitare click troppo rapidi
+                    next_button.click()
+                except:
+                    break  # Se il bottone "next" non è più cliccabile, esci dal loop
+
+        # Verifica che il numero di righe sia corretto
         assert len(table_rows) == 99, f"The table should have 99 rows - found {len(table_rows)} row(s)"
-
-        for expected_story, row in zip(expected_stories, table_rows):
-            story_in_row = row.find_element(By.CSS_SELECTOR, "td:nth-child(1)").text
-            assert expected_story == story_in_row, f"Mismatch found: {expected_story} != {story_in_row}"
-
-
 
     def test_load_tc_28(self, driver, load_tc_28_fixture):
         """

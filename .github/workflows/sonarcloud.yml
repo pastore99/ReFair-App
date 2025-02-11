@@ -11,15 +11,11 @@ jobs:
   test_and_scan:
     runs-on: ubuntu-latest
     steps:
-      #
       # 1) CHECKOUT CODICE
-      #
       - name: Checkout code
         uses: actions/checkout@v3
 
-      #
       # 2) SETUP PYTHON & DEPENDENZE
-      #
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -28,60 +24,32 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r refair-server/requirements.txt
+          pip install -r server/envs/requirements.txt
 
-      - name: Setup WebDriver
+      # 3) AVVIO DEI MICROSERVIZI E API GATEWAY
+      - name: Start microservices and API Gateway
         run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-chromedriver
-          export PATH=$PATH:/usr/lib/chromium-browser/
+          chmod +x server/envs/domain_prediction_env/bin/activate
+          chmod +x server/envs/tasks_prediction_env/bin/activate
+          chmod +x server/envs/file_management_env/bin/activate
+          chmod +x server/envs/report_generation_env/bin/activate
+          chmod +x server/envs/feedback_env/bin/activate
+          chmod +x server/envs/api_gateway_env/bin/activate
+          
+          nohup bash -c "source server/envs/domain_prediction_env/bin/activate && python server/microservices/domain_prediction_service.py" &
+          sleep 2
+          nohup bash -c "source server/envs/tasks_prediction_env/bin/activate && python server/microservices/task_prediction_service.py" &
+          sleep 2
+          nohup bash -c "source server/envs/file_management_env/bin/activate && python server/microservices/file_management_service.py" &
+          sleep 2
+          nohup bash -c "source server/envs/report_generation_env/bin/activate && python server/microservices/report_generation_service.py" &
+          sleep 2
+          nohup bash -c "source server/envs/feedback_env/bin/activate && python server/microservices/feedback_service.py" &
+          sleep 2
+          nohup bash -c "source server/envs/api_gateway_env/bin/activate && python server/api_gateway/api_gateway.py" &
+          sleep 2
 
-      #
-      # 3) SCARICA GLOVE DA KAGGLE (se necessario)
-      #
-      - name: Install Kaggle
-        run: pip install kaggle
-        working-directory: refair-server
-
-      - name: Download glove.6B.100d.txt from Kaggle
-        run: kaggle datasets download -d danielwillgeorge/glove6b100dtxt -p ./downloads
-        env:
-          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
-          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
-        working-directory: refair-server
-
-      - name: Unzip downloaded file
-        run: |
-          mkdir -p models
-          unzip ./downloads/glove6b100dtxt.zip -d models
-          ls -l models
-        working-directory: refair-server
-
-      #
-      # 4) AVVIO DEL SERVER FLASK
-      #
-      - name: Start Flask server (python app.py)
-        run: |
-          echo "Starting server..."
-          cd refair-server
-          nohup python app.py &    # Avvio in background
-          sleep 30                 # Attende che il server parta
-          ps aux | grep python
-          curl -I http://localhost:5001  # Check se risponde su 5001
-
-      #
-      # 5) ESECUZIONE TEST PYTHON
-      #
-      - name: Run Pytest
-        env:
-          DISPLAY: :99
-        run: |
-          cd refair-server
-          pytest --maxfail=1 --disable-warnings -q
-
-      #
-      # 6) SETUP NODE + COVERAGE FRONTEND
-      #
+      # 4) SETUP NODE + AVVIO CLIENT
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -89,37 +57,44 @@ jobs:
 
       - name: Install dependencies (Client)
         run: npm install
-        working-directory: ./refair-client
+        working-directory: ./client/web_app
+
+      - name: Start client application
+        run: |
+          nohup npm run dev --prefix ./client/web_app &
+          sleep 5
+
+      - name: Check if client is running
+        run: curl -I http://localhost:5173 || exit 1
+
+      # 5) TEST E SCANSIONE SONARCLOUD
+      - name: Run Pytest
+        env:
+          DISPLAY: :99
+        run: |
+          cd refair-server
+          pytest --maxfail=1 --disable-warnings -q
 
       - name: Client test and coverage
         run: npm run coverage
-        working-directory: ./refair-client
+        working-directory: ./client/web_app
 
-      #
-      # 7) SETUP JAVA (per SonarCloud, se necessario)
-      #
-      - name: Setup Java
+      - name: Setup Java (for SonarCloud)
         uses: actions/setup-java@v3
         with:
           java-version: 11
           distribution: temurin
 
-      #
-      # 8) SONARCLOUD SCAN (Server - Python)
-      #
-#      - name: SonarCloud Scan (Server)
-#        uses: SonarSource/sonarcloud-github-action@master
-#        env:
-#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_SERVER }}
-#        with:
-#          projectBaseDir: refair-server/
+      # - name: SonarCloud Scan (Server)
+      #  uses: SonarSource/sonarcloud-github-action@master
+      #  env:
+      #    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_SERVER }}
+      #  with:
+      #    projectBaseDir: refair-server/
 
-      #
-      # 9) SONARCLOUD SCAN (Client - Node)
-      #
-#      - name: SonarCloud Scan (Client)
-#        uses: SonarSource/sonarcloud-github-action@master
-#        env:
-#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_CLIENT }}
-#        with:
-#          projectBaseDir: refair-client/
+      # - name: SonarCloud Scan (Client)
+      #  uses: SonarSource/sonarcloud-github-action@master
+      #  env:
+      #    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_CLIENT }}
+      #  with:
+      #    projectBaseDir: client/web_app/
