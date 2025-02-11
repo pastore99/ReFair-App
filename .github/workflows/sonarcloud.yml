@@ -85,7 +85,7 @@ jobs:
         env:
           DISPLAY: :99
         run: |
-          cd refair-server
+          cd server
           pytest --maxfail=1 --disable-warnings -q
 
       - name: Client test and coverage
