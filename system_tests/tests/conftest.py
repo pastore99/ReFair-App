@@ -271,10 +271,10 @@ def load_tc_28_fixture():
 def analyze_tc_1_fixture():
     return os.path.join(
         os.path.dirname(__file__),
-        '..', 'data', 'analyze_tc_1', 'stories.xlsx'
+        '..','data', 'analyze_tc_1', 'stories.xlsx'
     ), os.path.join(
         os.path.dirname(__file__),
-        '..', 'data', 'analyze_tc_1', 'oracle.json'
+        '..','data', 'analyze_tc_1', 'oracle.json'
     ),
 
 @pytest.fixture

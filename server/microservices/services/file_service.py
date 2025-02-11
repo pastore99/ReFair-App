@@ -25,7 +25,7 @@ class FileService:
         :return: the path save
         """
         if not self.allowed_file(filename):
-            raise ValueError("Invalid file type")
+            raise ValueError("This type of file is not supported. Upload an xlsx file.")
 
         file_path = os.path.join(self.upload_folder, filename)
         file.save(file_path)

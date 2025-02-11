@@ -655,6 +655,10 @@ export default {
     },
 
     submitFile() {
+      if (!this.file) {
+        alert('No file loaded');
+        return; // Interrompe l'operazione se nessun file è selezionato
+      }
       let formData = new FormData();
       formData.append("stories", this.file);
 
@@ -795,6 +799,14 @@ export default {
           console.error(error);
           alert("An error occurred while submitting the rating.");
         });
+    },
+
+    // Pagination
+    changePage(page) {
+      if (page > 0 && page <= this.totalPages) {
+        this.currentPage = page;
+        this.currentPageInput = page; // Updates the input of the current page
+      }
     },
 
     // Chapters
