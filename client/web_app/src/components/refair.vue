@@ -596,26 +596,37 @@ export default {
     },
 
     reportStories() {
-      let formData = new FormData();
-      console.log(this.stories);
-      formData.append("stories", JSON.stringify(this.stories));
+      // Assicuriamoci che le storie siano nel formato corretto
+      if (!this.stories || this.stories.length === 0) {
+        alert("No user stories available to download.");
+        return;
+      }
 
+      // Costruisco l'oggetto JSON con la struttura che il backend si aspetta
+      const payload = {
+        user_stories: this.stories,  // Il backend si aspetta un array di user stories
+      };
+
+      // Faccio la richiesta POST con JSON corretto
       axios
-        .post(server + "/generate/report", formData, {
+        .post(server + "/generate/report", payload, {
           headers: {
-            "Content-Type": "multipart/form-data",
+            "Content-Type": "application/json", // Assicuro che il server riceva JSON
           },
         })
         .then((res) => {
           console.log(res.data);
+
+          // Converto la risposta in JSON e la scarico
           downloadjs(
-            ("" + res.data).replaceAll("'", '"'),
+            JSON.stringify(res.data, null, 2), // Stringify per formattare il JSON
             "report.json",
             "application/json"
           );
         })
         .catch((error) => {
-          console.log(error);
+          console.error("Errore nel download del report:", error);
+          alert("Errore nel generare il report. Controlla la console.");
         });
     },
 
@@ -682,68 +693,51 @@ export default {
       if (story) {
         this.story = story;
 
-        // Prima chiamata: /predict/domain
         axios
           .post(server + "/predict/domain", { user_story: this.story }, {
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
           })
           .then((domainRes) => {
-            // Salva il dominio ottenuto
-            const domain = domainRes.data.domain;
-            this.story_domain = domain;
+            this.story_domain = domainRes.data.domain;
+            console.log("Dominio ottenuto:", this.story_domain);
 
-            console.log("Dominio ottenuto:", domain);
-
-            // Seconda chiamata: /predict/tasks
-            let formData = new FormData();
-            formData.append("user_story", this.story);
-            formData.append("domain", domain);
-
-            return axios.post(server + "/predict/tasks", formData, {
-              headers: {
-                "Content-Type": "application/json", // Cambia il content-type per la seconda chiamata
-              },
+            return axios.post(server + "/predict/tasks", {
+              user_story: this.story,
+              domain: this.story_domain,
+            }, {
+              headers: { "Content-Type": "application/json" },
             });
           })
           .then((tasksRes) => {
-            // Salva i dati ottenuti dalla seconda chiamata
+            console.log("Risposta tasks:", tasksRes.data);
             this.story_tasks = tasksRes.data.tasks_features;
 
-            console.log("Task ottenuti:", this.story_tasks);
+            // Creiamo la mappa feature → numero di occorrenze nei task
+            let featureCounts = {};
 
-            const body = document.querySelector("body");
-            this.activeAnalyzeStoryModal = !this.activeAnalyzeStoryModal;
-
-            var data = [];
-
-            Object.keys(tasksRes.data.features_counts).forEach(function (key) {
-              data.push({
-                x: key,
-                y: [tasksRes.data.features_counts[key]],
+            Object.values(this.story_tasks).forEach(features => {
+              features.forEach(feature => {
+                featureCounts[feature] = (featureCounts[feature] || 0) + 1;
               });
             });
 
-            if (this.activeAnalyzeStoryModal) {
-              this.series = [
-                {
-                  name: "occurrencies",
-                  data: data,
-                },
-              ];
-              console.log(this.series[0]["data"]);
-              body.classList.add("modal-open");
-            } else {
-              body.classList.remove("modal-open");
-            }
+            // Convertiamo i dati in formato ApexCharts
+            let data = Object.keys(featureCounts).map(feature => ({
+              x: feature,
+              y: featureCounts[feature],
+            }));
+
+            this.series = [{ name: "Occurrencies", data: data }];
+            console.log("Dati aggiornati per il grafico:", this.series);
+
+            this.activeAnalyzeStoryModal = true;
           })
           .catch((error) => {
-            // Gestisci eventuali errori
-            console.error("Errore durante le chiamate:", error);
+            console.error("Errore nelle chiamate API:", error);
           });
       }
     },
+
 
     showRatingModal() {
       this.activeRatingModal = true;

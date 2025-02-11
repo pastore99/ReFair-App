@@ -277,6 +277,15 @@ def analyze_tc_1_fixture():
         '..', 'data', 'analyze_tc_1', 'oracle.json'
     ),
 
+@pytest.fixture
+def report_tc_2():
+    return os.path.join(
+        os.path.dirname(__file__),
+        '..', 'data', 'report_tc_2', 'stories.xlsx'
+    ), os.path.join(
+        os.path.dirname(__file__),
+        '..', 'data', 'report_tc_2', 'oracle.json'
+    ),
 
 @pytest.fixture
 def desktop_download_all_fixture():
