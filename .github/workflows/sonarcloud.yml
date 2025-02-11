@@ -83,11 +83,11 @@ jobs:
 
       # 5) TEST E SCANSIONE SONARCLOUD
       - name: Run Pytest
+        env:
+          DISPLAY: :99
         run: |
           source server/envs/api_gateway_env/bin/activate
-          cd server
-          pytest --maxfail=1 --disable-warnings -q
-      
+          pytest system_test/tests --maxfail=1 --disable-warnings -q
 
       - name: Client test and coverage
         run: npm run coverage
