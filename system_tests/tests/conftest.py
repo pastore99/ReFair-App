@@ -2,16 +2,16 @@ import os
 import pytest
 from selenium.webdriver.firefox.options import Options
 from selenium import webdriver
-
+from selenium.webdriver.firefox.service import Service
 
 @pytest.fixture
 def driver():
     options = Options()
-    options.headless = True  # Abilita la modalità headless
-    driver = webdriver.Firefox(options=options)
-
+    options.headless = True
+    options.binary_location = "/usr/bin/firefox"
+    service = Service(executable_path='/usr/bin/geckodriver')
+    driver = webdriver.Firefox(service=service, options=options)
     yield driver
-
     driver.quit()
 
 
