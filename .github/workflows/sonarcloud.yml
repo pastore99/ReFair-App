@@ -32,7 +32,7 @@ jobs:
 
       - name: Start API Gateway
         run: |
-          source server/envs/api_gateway_env/bin/activate && pip install -r server/microservices/requirements.txt
+          source server/envs/api_gateway_env/bin/activate && pip install -r server/envs/requirements.txt
           nohup python server/api_gateway/api_gateway.py &
           sleep 2
 
@@ -44,7 +44,7 @@ jobs:
           pytest system_test/tests --maxfail=1 --disable-warnings -q
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarqube-scan-action@v4.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_SERVER }}
         with:
@@ -75,5 +75,7 @@ jobs:
         uses: SonarSource/sonarcloud-github-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_CLIENT }}
+        with:
+          args: -Dsonar.qualitygate.wait=true
         with:
           projectBaseDir: client/web_app/
