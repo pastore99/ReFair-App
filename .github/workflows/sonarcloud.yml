@@ -48,14 +48,14 @@ jobs:
           DISPLAY: :99
         run: |
           source server/envs/test_env/bin/activate
-          pytest system_test/tests --maxfail=1 --disable-warnings -q
+          pytest system_tests/tests --maxfail=1 --disable-warnings -q
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v4.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_SERVER }}
         with:
-          projectBaseDir: refair-server/
+          projectBaseDir: server/
 
   sonarcloudScan2:
     name: SonarCloudScan2
