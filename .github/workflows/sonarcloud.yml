@@ -34,7 +34,7 @@ jobs:
         run: |
           source server/envs/api_gateway_env/bin/activate && pip install -r server/envs/requirements.txt
           deactivate
-          source server/envs/test_env/bin/activate && pip install pytest
+          source server/envs/test_env/bin/activate && pip install -r server/envs/requirements.txt
           deactivate
 
       - name: Start API Gateway
@@ -48,14 +48,14 @@ jobs:
           DISPLAY: :99
         run: |
           source server/envs/test_env/bin/activate
-          pytest system_tests/tests --maxfail=1 --disable-warnings -q
+          pytest system_test/tests --maxfail=1 --disable-warnings -q
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v4.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_SERVER }}
         with:
-          projectBaseDir: server/
+          projectBaseDir: refair-server/
 
   sonarcloudScan2:
     name: SonarCloudScan2
