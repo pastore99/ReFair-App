@@ -76,6 +76,4 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_CLIENT }}
         with:
-          args: -Dsonar.qualitygate.wait=true
-        with:
           projectBaseDir: client/web_app/
