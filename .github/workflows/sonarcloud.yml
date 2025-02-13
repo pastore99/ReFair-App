@@ -32,10 +32,8 @@ jobs:
 
       - name: Install dependencies in virtual environments
         run: |
-          source server/envs/api_gateway_env/bin/activate && pip install -r server/envs/requirements.txt
-          deactivate
-          source server/envs/test_env/bin/activate && pip install -r server/envs/requirements.txt
-          deactivate
+          source server/envs/api_gateway_env/bin/activate && pip install -r server/envs/requirements.txt && deactivate
+          source server/envs/test_env/bin/activate && pip install pytest -r server/envs/requirements.txt && deactivate
 
       - name: Start API Gateway
         run: |
