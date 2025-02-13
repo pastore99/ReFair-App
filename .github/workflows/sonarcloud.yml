@@ -23,16 +23,23 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r server/envs/requirements.txt
           pip install selenium
 
       - name: Create virtual environments if not exist
         run: |
           python -m venv server/envs/api_gateway_env
+          python -m venv server/envs/test_env
+
+      - name: Install dependencies in virtual environments
+        run: |
+          source server/envs/api_gateway_env/bin/activate && pip install -r server/envs/requirements.txt
+          deactivate
+          source server/envs/test_env/bin/activate && pip install pytest
+          deactivate
 
       - name: Start API Gateway
         run: |
-          source server/envs/api_gateway_env/bin/activate && pip install -r server/envs/requirements.txt
+          source server/envs/api_gateway_env/bin/activate
           nohup python server/api_gateway/api_gateway.py &
           sleep 2
 
@@ -40,7 +47,7 @@ jobs:
         env:
           DISPLAY: :99
         run: |
-          source server/envs/api_gateway_env/bin/activate
+          source server/envs/test_env/bin/activate
           pytest system_test/tests --maxfail=1 --disable-warnings -q
 
       - name: SonarCloud Scan
