@@ -6,6 +6,8 @@ from selenium import webdriver
 
 @pytest.fixture
 def driver():
+    options = Options()
+    options.add_argument("--headless")
     driver = webdriver.Firefox()
     driver.set_window_size(1920, 1080)
 
