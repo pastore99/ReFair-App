@@ -58,7 +58,7 @@ jobs:
           deactivate
 
       # 3. Installazione Selenium e Firefox driver
-      - name: Install Selenium and Firefox driver
+      - name: Install Firefox and Geckodriver
         run: |
           sudo apt-get update
           sudo apt-get install -y firefox
@@ -68,6 +68,10 @@ jobs:
           sudo mv geckodriver /usr/local/bin/
           geckodriver --version
           pip install selenium
+
+      - name: Check Firefox Path
+        run: which firefox
+
 
       # 4. Creazione ambiente virtuale per test di regressione
       - name: Create and setup virtual environment for regression tests

@@ -7,7 +7,7 @@ from selenium import webdriver
 @pytest.fixture
 def driver():
     options = Options()
-    options.binary_location = "/snap/bin/firefox"
+    options.binary_location = "/usr/bin/firefox"
     options.add_argument("--headless")
     driver = webdriver.Firefox()
     driver.set_window_size(1920, 1080)
