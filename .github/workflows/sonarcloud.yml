@@ -1,4 +1,5 @@
 name: SonarCloud Unit Tests
+
 on:
   push:
     branches:
@@ -11,7 +12,8 @@ jobs:
     name: Setup and Run Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -20,17 +22,21 @@ jobs:
         with:
           python-version: "3.9"
 
-      - name: Install dependencies
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y unzip
+
+      - name: Install global dependencies
         run: |
           python -m pip install --upgrade pip
           pip install kaggle psutil requests
 
-      # 1. Creazione ambiente virtuale per i microservizi
+      # **Microservices Environment**
       - name: Create and setup virtual environment for microservices
         run: |
           python -m venv server/envs/microservices_env
           source server/envs/microservices_env/bin/activate
           pip install -r server/envs/requirements.txt
+          pip install psutil
           deactivate
 
       - name: Start all microservices
@@ -51,7 +57,7 @@ jobs:
           done
           deactivate
 
-      # 2. Creazione ambiente virtuale per API Gateway
+      # **API Gateway Environment**
       - name: Create and setup virtual environment for API Gateway
         run: |
           python -m venv server/envs/apigateway_env
@@ -62,11 +68,11 @@ jobs:
       - name: Start API Gateway
         run: |
           source server/envs/apigateway_env/bin/activate
-          nohup python server/api_gateway/api_gateway.py &
+          nohup python server/api_gateway/api_gateway.py > apigateway.log 2>&1 &
           sleep 2
           deactivate
 
-      # 3. Download GloVe embeddings
+      # **Scarica GloVe embeddings**
       - name: Install Kaggle CLI
         run: pip install kaggle
 
@@ -81,26 +87,31 @@ jobs:
         run: unzip ./downloads/glove6b100dtxt.zip -d ./utils/models
         working-directory: ./server
 
-      # 4. Creazione ambiente virtuale per test di unità
+      # **Unit Test Environment**
       - name: Create and setup virtual environment for unit tests
         run: |
           python -m venv server/envs/test_env
           source server/envs/test_env/bin/activate
           pip install -r server/requirements.txt
+          pip install psutil
           deactivate
 
+      # Start Monitor dei Microservizi**
       - name: Start microservice monitor
         run: |
           source server/envs/microservices_env/bin/activate
-          nohup python server/scripts/monitor_microservices.py &
+          nohup python server/scripts/monitor_microservices.py > monitor.log 2>&1 &
           deactivate
+          cat monitor.log
 
+      # Esegui Test**
       - name: Run Unit Tests
         run: |
           source server/envs/test_env/bin/activate
           pytest test --maxfail=10 --disable-warnings -q
           deactivate
 
+      # SonarCloud Scan**
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v4.1.0
         env:
