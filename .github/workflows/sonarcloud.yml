@@ -1,4 +1,4 @@
-name: SonarCloud Regression Tests
+name: SonarCloud Unit Tests
 on:
   push:
     branches:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   setup_and_run_tests:
-    name: Setup and Run Regression Tests
+    name: Setup and Run Unit Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -57,36 +57,18 @@ jobs:
           sleep 2
           deactivate
 
-      # 3. Installazione Selenium e Firefox driver
-      - name: Install Firefox and Geckodriver
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y firefox
-          GECKODRIVER_VERSION=$(curl -s https://api.github.com/repos/mozilla/geckodriver/releases/latest | grep 'tag_name' | cut -d '"' -f 4)
-          wget "https://github.com/mozilla/geckodriver/releases/download/$GECKODRIVER_VERSION/geckodriver-$GECKODRIVER_VERSION-linux64.tar.gz"
-          tar -xvzf geckodriver-$GECKODRIVER_VERSION-linux64.tar.gz
-          sudo mv geckodriver /usr/local/bin/
-          geckodriver --version
-          pip install selenium
-
-      - name: Check Firefox Path
-        run: which firefox
-
-
-      # 4. Creazione ambiente virtuale per test di regressione
-      - name: Create and setup virtual environment for regression tests
+      # 3. Creazione ambiente virtuale per test di unità
+      - name: Create and setup virtual environment for unit tests
         run: |
           python -m venv server/envs/test_env
           source server/envs/test_env/bin/activate
           pip install -r server/requirements.txt
           deactivate
 
-      - name: Run Regression Tests
-        env:
-          DISPLAY: :99
+      - name: Run Unit Tests
         run: |
           source server/envs/test_env/bin/activate
-          pytest system_tests/tests --maxfail=1 --disable-warnings -q
+          pytest test --maxfail=1 --disable-warnings -q
           deactivate
 
       - name: SonarCloud Scan
