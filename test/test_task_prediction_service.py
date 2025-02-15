@@ -38,7 +38,7 @@ def test_predict_tasks_no_json(client):
     """ Testa il caso in cui la richiesta non è JSON """
     response = client.post('/predict/tasks', data="Invalid Text", content_type='text/plain')
 
-    assert response.status_code == 200
+    assert response.status_code == 400
     assert response.json['status'] == 'failure'
     assert response.json['motivation'] == "Request body must be JSON"
 
@@ -46,7 +46,7 @@ def test_predict_tasks_missing_fields(client):
     """ Testa il caso in cui manca 'user_story' o 'domain' """
     response = client.post('/predict/tasks', data=json.dumps({"user_story": "As a cardiologist..."}), content_type='application/json')
 
-    assert response.status_code == 200
+    assert response.status_code == 400
     assert response.json['status'] == 'failure'
     assert response.json['motivation'] == "Missing 'user_story' or 'domain' in request"
 

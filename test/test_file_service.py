@@ -39,7 +39,7 @@ def test_save_file_invalid_extension(file_service):
 
     mock_file = MagicMock()
 
-    with pytest.raises(ValueError, match="Invalid file type"):
+    with pytest.raises(ValueError, match="This type of file is not supported. Upload an xlsx file."):
         file_service.save_file(mock_file, "test.txt")  # Estensione non consentita
 
 def test_upload_folder_creation(mock_upload_folder):

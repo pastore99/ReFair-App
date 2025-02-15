@@ -1,10 +1,10 @@
-
 import pytest
 import json
+import pandas as pd
+from unittest.mock import patch, MagicMock
 from server.microservices.services.classifier_factory import ClassifierFactory
 from server.microservices.services.classifiers.xgboost_classifier import XGBoostDomainClassifier
 from server.microservices.services.classifiers.bert_classifier import BERTDomainClassifier
-
 
 @pytest.fixture
 def mock_config_xgboost(mocker):
@@ -28,10 +28,21 @@ def mock_config_not_found(mocker):
 
 @pytest.fixture
 def mock_xgboost_classifier(mocker):
-    """ Mock per evitare di caricare il modello XGBoost durante i test """
+    """ Mock per evitare di caricare il modello XGBoost, il dataset e il tokenizer BERT """
+
+    # Mock del file di configurazione XGBoost
     mocker.patch("builtins.open", mocker.mock_open(read_data=json.dumps({"default_algorithm": "xgboost"})))
-    mocker.patch("server.microservices.services.classifiers.xgboost_classifier.pickle.load", return_value="Mocked Model")
-    mocker.patch("server.microservices.services.classifiers.xgboost_classifier.BertTokenizer.from_pretrained", return_value="Mocked Tokenizer")
+
+    # Mock del dataset Excel (evita che cerchi di leggere un file reale)
+    mocker.patch("pandas.read_excel", return_value=pd.DataFrame({"Feature": [1, 2, 3]}))
+
+    # Mock di pickle.load per evitare che carichi un modello reale
+    mocker.patch("pickle.load", return_value="Mocked Model")
+
+    # 🛑 **Mock di `BertTokenizer.from_pretrained` per evitare di scaricare file**
+    mock_tokenizer = MagicMock()
+    mock_tokenizer.encode.return_value = [101, 102]  # Valori finti per encoding
+    mocker.patch("server.microservices.services.classifiers.xgboost_classifier.BertTokenizer.from_pretrained", return_value=mock_tokenizer)
 
 def test_get_xgboost_classifier(mock_config_xgboost, mock_xgboost_classifier):
     """ Testa che il factory restituisca XGBoost quando specificato in config.json """
@@ -43,12 +54,12 @@ def test_get_bert_classifier(mock_config_bert):
     classifier = ClassifierFactory.get_domain_classifier()
     assert isinstance(classifier, BERTDomainClassifier)
 
-def test_get_default_xgboost_if_config_missing_key(mock_config_missing):
+def test_get_default_xgboost_if_config_missing_key(mock_config_missing, mock_xgboost_classifier):
     """ Testa che il factory restituisca XGBoost se config.json non ha default_algorithm """
     classifier = ClassifierFactory.get_domain_classifier()
     assert isinstance(classifier, XGBoostDomainClassifier)
 
-def test_get_default_xgboost_if_config_not_found(mock_config_not_found):
+def test_get_default_xgboost_if_config_not_found(mock_config_not_found, mock_xgboost_classifier):
     """ Testa che il factory restituisca XGBoost se config.json non esiste """
     classifier = ClassifierFactory.get_domain_classifier()
     assert isinstance(classifier, XGBoostDomainClassifier)

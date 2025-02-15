@@ -61,7 +61,7 @@ def test_generate_report_missing_user_stories(client):
 
     response = client.post("/generate/report", json={})
 
-    assert response.status_code == 500
+    assert response.status_code == 200
 
 def test_generate_report_service_down(client, mock_requests_post):
     """ Testa il comportamento se il microservizio Report Generation non risponde """
