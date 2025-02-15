@@ -27,7 +27,7 @@ class TestAnalyze:
             )
             file_input.send_keys(excel)
         except TimeoutException:
-            print("\n🔴 ERRORE: Il campo di input del file non è stato trovato.")
+            print("\nERRORE: Il campo di input del file non è stato trovato.")
             print(driver.page_source)  # Stampiamo il codice HTML attuale per debug
             assert False, "File input not found."
 
@@ -38,7 +38,7 @@ class TestAnalyze:
             )
             load_button.click()
         except TimeoutException:
-            print("\n🔴 ERRORE: Il pulsante di caricamento non è stato trovato.")
+            print("\nERRORE: Il pulsante di caricamento non è stato trovato.")
             print(driver.page_source)  # Stampiamo il codice HTML attuale per debug
             assert False, "Load button not found."
 
