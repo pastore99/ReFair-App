@@ -57,7 +57,19 @@ jobs:
           sleep 2
           deactivate
 
-      # 3. Creazione ambiente virtuale per test di unità
+      # 3. Download GloVe embeddings
+      - name: Download glove.6B.100d.txt from Kaggle
+        run: kaggle datasets download -d danielwillgeorge/glove6b100dtxt -p ./downloads
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        working-directory: ./server
+
+      - name: Unzip downloaded file
+        run: unzip ./downloads/glove6b100dtxt.zip -d ./utils/models
+        working-directory: ./server
+
+      # 4. Creazione ambiente virtuale per test di unità
       - name: Create and setup virtual environment for unit tests
         run: |
           python -m venv server/envs/test_env
