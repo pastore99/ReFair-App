@@ -21,7 +21,9 @@ jobs:
           python-version: "3.9"
 
       - name: Install dependencies
-        run: python -m pip install --upgrade pip
+        run: |
+          python -m pip install --upgrade pip
+          pip install kaggle
 
       # 1. Creazione ambiente virtuale per i microservizi
       - name: Create and setup virtual environment for microservices
@@ -58,6 +60,9 @@ jobs:
           deactivate
 
       # 3. Download GloVe embeddings
+      - name: Install Kaggle CLI
+        run: pip install kaggle
+
       - name: Download glove.6B.100d.txt from Kaggle
         run: kaggle datasets download -d danielwillgeorge/glove6b100dtxt -p ./downloads
         env:
