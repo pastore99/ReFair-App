@@ -118,3 +118,6 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_SERVER }}
         with:
           projectBaseDir: server/
+          args: >
+            -Dsonar.organization=pastore99
+            -Dsonar.projectKey=pastore99_ReFair-App
