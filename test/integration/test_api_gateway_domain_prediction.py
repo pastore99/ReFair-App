@@ -51,9 +51,14 @@ def test_predict_domain_missing_user_story(client):
 
     response = client.post("/predict/domain", json={})
 
+    # Stampa la risposta per capire meglio il problema
+    print("\nResponse JSON:", response.json)
+    print("Status Code:", response.status_code)
+
     assert response.status_code == 400
     assert response.json["status"] == "failure"
     assert "Missing 'user_story'" in response.json["motivation"]
+
 
 def test_predict_domain_service_down(client, mock_requests_post):
     """ Testa il comportamento se il microservizio Domain Prediction non risponde """

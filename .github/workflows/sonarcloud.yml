@@ -40,8 +40,10 @@ jobs:
             if [ -d "$service" ]; then
               service_script="$service/$(basename $service).py"
               if [ -f "$service_script" ]; then
-                nohup python "$service_script" &
-                sleep 2
+                echo "Starting $service_script..."
+                nohup python "$service_script" > "$service.log" 2>&1 &
+                sleep 5
+                echo "$service_script started"
               else
                 echo "Skipping $service (no matching .py file)"
               fi
