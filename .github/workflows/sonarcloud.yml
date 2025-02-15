@@ -38,8 +38,13 @@ jobs:
           source server/envs/microservices_env/bin/activate
           for service in server/microservices/*; do
             if [ -d "$service" ]; then
-              nohup python "$service/$(basename $service).py" &
-              sleep 2
+              service_script="$service/$(basename $service).py"
+              if [ -f "$service_script" ]; then
+                nohup python "$service_script" &
+                sleep 2
+              else
+                echo "Skipping $service (no matching .py file)"
+              fi
             fi
           done
           deactivate
