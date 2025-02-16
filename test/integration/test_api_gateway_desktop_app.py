@@ -2,6 +2,7 @@ import pytest
 import requests
 import json
 from io import BytesIO
+import pandas as pd
 
 # URL del Gateway API in ascolto sulla porta 8080
 API_GATEWAY_URL = "http://localhost:8080"
@@ -9,17 +10,24 @@ API_GATEWAY_URL = "http://localhost:8080"
 # **Test: Caricamento file (storiesload)**
 def test_stories_load_success():
     """Verifica il caricamento di un file Excel e la ricezione delle user stories"""
+    excel_buffer = BytesIO()
+    df = pd.DataFrame({"User Story": ["Story 1", "Story 2"]})  # Simuliamo una colonna valida
+    df.to_excel(excel_buffer, index=False, engine="openpyxl")
+    excel_buffer.seek(0)  # Riporta il puntatore all'inizio del file
+
     files = {
-        'stories': ("test.xlsx", BytesIO(b"fake_excel_data"),
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        'stories': ("test.xlsx", excel_buffer, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     }
+
     response = requests.post(f"{API_GATEWAY_URL}/storiesload", files=files)
 
     assert response.status_code == 200, f"Errore: {response.text}"
     json_response = response.json()
     assert json_response["status"] == "success"
-    assert isinstance(json_response["stories"], list)
-    assert len(json_response["stories"]) > 0
+
+    stories_list = json_response.get("stories", {}).get("stories", [])
+    assert isinstance(stories_list, list), f"Expected list, got {type(stories_list)}: {stories_list}"
+    assert len(stories_list) > 0, "No stories returned from the server"
 
 # **Test: Predizione dominio**
 def test_predict_domain_success():

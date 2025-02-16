@@ -1,6 +1,7 @@
 import pytest
 import requests
 from io import BytesIO
+import pandas as pd
 
 API_GATEWAY_URL = "http://localhost:8080"
 
@@ -10,17 +11,23 @@ def client():
     return requests.Session()
 
 def test_stories_load_success(client):
-    """ Testa il caricamento di un file valido attraverso API Gateway """
+    """Testa il caricamento di un file Excel valido attraverso API Gateway"""
+
+    # Creiamo un file Excel in memoria
+    excel_buffer = BytesIO()
+    df = pd.DataFrame({"User Story": ["Story 1", "Story 2"]})  # Simuliamo dati validi
+    df.to_excel(excel_buffer, index=False, engine="openpyxl")
+    excel_buffer.seek(0)  # Riporta il puntatore all'inizio del file
 
     # File da inviare
     files = {
-        "stories": ("test.xlsx", BytesIO(b"fake_excel_data"), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        "stories": ("test.xlsx", excel_buffer, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     }
 
     # Effettua la richiesta
     response = client.post(f"{API_GATEWAY_URL}/storiesload", files=files)
 
-    # Debug: Stampa il contenuto della risposta per capire il problema
+    # Debug: Stampa la risposta per capire il problema
     print("\n--- DEBUG RESPONSE ---")
     print("Status Code:", response.status_code)
     print("Headers:", response.headers)
@@ -36,8 +43,13 @@ def test_stories_load_success(client):
 
     # Controlli sugli output attesi
     assert json_response["status"] == "success", f"Errore: {json_response}"
-    assert isinstance(json_response["stories"], list), "Il campo 'stories' non è una lista"
-    assert len(json_response["stories"]) > 0, "Nessuna user story ricevuta"
+
+    # Estrarre la lista di user stories correttamente
+    stories_dict = json_response.get("stories", {})
+    stories_list = stories_dict.get("stories", [])
+
+    assert isinstance(stories_list, list), f"Expected list, got {type(stories_list)}: {stories_list}"
+    assert len(stories_list) > 0, "Nessuna user story ricevuta"
 
 def test_stories_load_no_file(client):
     """ Testa l'errore quando non viene inviato alcun file """
