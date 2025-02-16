@@ -631,26 +631,26 @@ export default {
     },
 
     reportStory() {
-      let formData = new FormData();
-      console.log(this.story);
-      formData.append("story", JSON.stringify(this.story));
+      let payload = {
+        user_stories: [this.story]  // Il backend si aspetta un array
+      };
 
       axios
-        .post(server + "/generate/report", formData, {
+        .post(server + "/generate/report", payload, {
           headers: {
-            "Content-Type": "multipart/form-data",
+            "Content-Type": "application/json",
           },
         })
         .then((res) => {
           console.log(res.data);
           downloadjs(
-            ("" + res.data).replaceAll("'", '"'),
+            JSON.stringify(res.data, null, 2),
             "report-" + this.story + ".json",
             "application/json"
           );
         })
         .catch((error) => {
-          console.log(error);
+          console.log("Errore nella generazione del report:", error);
         });
     },
 
@@ -706,9 +706,12 @@ export default {
     },
 
     analyzeSingleStory() {
-      if (this.inputStory) {
-        this.toggleAnalyzeStoryModal(this.inputStory);
+      if (!this.inputStory.trim()) {
+        alert("The User Story did not match the required format.");
+        return;
       }
+
+      this.toggleAnalyzeStoryModal(this.inputStory);
     },
 
     toggleAnalyzeStoryModal(story) {

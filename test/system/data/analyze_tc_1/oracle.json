@@ -1,0 +1,1 @@
+[{"user_story": "As a librarian, I want to use artificial neural networks to analyze user behavior and improve library services, so that we can provide a better experience for our patrons.", "domain": "Library", "tasks": ["clustering"], "tasks_features": {"clustering": ["author"]}}]

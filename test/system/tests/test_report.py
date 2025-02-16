@@ -26,8 +26,11 @@ class TestReport:
 
         try:
             WebDriverWait(driver_with_options, 15).until(EC.element_to_be_clickable((By.XPATH, "/html/body/div/div/div[1]/div/div[1]/table/tbody/tr[1]/td[2]/div/button"))).click()
-            time.sleep(2)
-            WebDriverWait(driver_with_options, 15).until(EC.element_to_be_clickable((By.XPATH, "/html/body/div/div/div[3]/div/div/div[3]/button"))).click()
+            time.sleep(6)
+            WebDriverWait(driver_with_options, 15).until(
+                EC.element_to_be_clickable((By.XPATH, "(//div[@class='modal-footer']//button)[2]"))
+            ).click()
+
 
             dowloaded_file = os.listdir(
                 os.path.join(
@@ -40,7 +43,7 @@ class TestReport:
                 oracle_data = json.load(file)
                 report = json.load(file1)
 
-                report["story"] = report["story"].replace("\n", "")
+                report[0]["user_story"] = report[0]["user_story"].replace("\n", "")
 
                 assert report == oracle_data, "the report does not match the oracle data"
 

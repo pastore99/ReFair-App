@@ -1,1 +1,0 @@
-{"story": "As a radiologist, I want to use the ID3 algorithm to develop decision tree models for diagnosing and predicting medical conditions based on various medical imaging data, such as X-rays, CT scans, and MRI scans.\n", "domain": "Radiology", "tasks": ["classification"], "features": {"classification": ["age", "race", "sex", "ethnicity"]}}

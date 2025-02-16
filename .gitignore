@@ -9,14 +9,14 @@ refair-server/__pycache__/
 client/desktop_app/__pycache__
 client/desktop_app/components/__pycache__
 refair-server/env/
-system_tests/env/
+test/system/env/
 refair-server/.pytest_cache/
 refair-server/.tox/
-system_tests/.venv/
-system_tests/tests/__pycache__/
+test/system/.venv/
+test/system/tests/__pycache__/
 # This is the name of my virtual environment -DG266
 refair-server/.venv/
-system_tests/.venv/
+test/system/.venv/
 
 #### Coverage reports
 refair-server/.coverage

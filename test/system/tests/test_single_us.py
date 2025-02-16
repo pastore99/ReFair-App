@@ -26,13 +26,21 @@ class Test_single_us:
         driver.find_element(By.CSS_SELECTOR, ".analyze").click()
 
         try:
-            # Attende la presenza di un elemento con classe 'alert' contenente il messaggio atteso
-            alert_element = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, ".alert"))
-            )
-            assert alert_element.text == expected_alert_message, f"Unexpected alert text: {alert_element.text}"
+            # Attende l'alert e lo cattura
+            WebDriverWait(driver, 5).until(EC.alert_is_present())
+            alert = driver.switch_to.alert
+            alert_text = alert.text
+
+            print(f"Alert detected: {alert_text}")  # Debug per verificare il messaggio
+            assert alert_text == expected_alert_message, f"Unexpected alert text: {alert_text}"
+
+            alert.accept()  # Chiude l'alert cliccando su "OK"
+
         except TimeoutException:
             assert False, f"Alert with the message '{expected_alert_message}' did not appear."
+
+        except NoAlertPresentException:
+            assert False, "No alert was found, but one was expected."
 
     def test_single_us_tc_2(self, driver, analyze_tc_1_fixture):
         """
@@ -44,7 +52,7 @@ class Test_single_us:
 
         oracle_path = analyze_tc_1_fixture[1]
         user_Story = (
-            "As a dedicated and passionate computer vision researcher working in the rapidly evolving field of artificial intelligence, I am deeply committed to advancing the capabilities of machine learning techniques. My primary objective is to utilize sophisticated and cutting-edge machine learning models to analyze large volumes of video and image data, extracting valuable insights and identifying subtle, complex patterns that may be extremely challenging, or even impossible, for human observers to discern with the naked eye. By employing a diverse range of deep learning architectures, such as convolutional neural networks (CNNs), recurrent neural networks (RNNs), and transformer-based models, I aim to enhance the precision and robustness of computer vision systems. These systems are intended to excel in a variety of applications, including but not limited to, object detection, facial recognition, medical imaging, autonomous vehicle navigation, and intelligent surveillance. Through this meticulous process of pattern recognition and data analysis, I seek to uncover hidden correlations and anomalies within the data that can lead to significant breakthroughs in the understanding and interpretation of visual information. My goal is to not only improve the accuracy and reliability of existing computer vision algorithms but also to contribute to the development of innovative applications that push the boundaries of what is possible in this domain. Ultimately, by advancing the state of the art in machine learning-driven computer vision, I hope to contribute meaningfully to the creation of more intelligent, adaptive, and responsive systems. These systems should be capable of performing complex visual tasks with a high degree of autonomy and precision, thereby enabling new possibilities for technological advancement and societal benefit across multiple sectors."
+            "As a librarian, I want to use artificial neural networks to analyze user behavior and improve library services, so that we can provide a better experience for our patrons."
         )
 
         # Inserisce la user story valida nell'input e clicca su analyze
@@ -83,11 +91,17 @@ class Test_single_us:
                 features[key] = value
 
             # Legge i dati dell'oracolo
+            # Legge i dati dell'oracolo
             with open(oracle_path, 'r') as file:
                 oracle_data = json.load(file)
 
+            # Se oracle_data è una lista, prendi il primo elemento
+            if isinstance(oracle_data, list):
+                oracle_data = oracle_data[0]
+
+            # Ora puoi accedere a 'domain' e 'features'
             assert domain == oracle_data['domain'], f"Domain does not match the oracle. Found: {domain}, expected: {oracle_data['domain']}"
-            assert features == oracle_data['features'], f"Sensitive features do not match the oracle. Found: {features}, expected: {oracle_data['features']}"
+            assert features == oracle_data['tasks_features'], f"Sensitive features do not match the oracle. Found: {features}, expected: {oracle_data['features']}"
 
         except TimeoutException:
             assert False, "Modal did not appear."

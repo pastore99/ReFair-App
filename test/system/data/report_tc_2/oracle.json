@@ -19,11 +19,11 @@
     ],
     "tasks_features": {
       "clustering": [
-        "race",
         "sex",
         "gender",
-        "geography",
         "ethnicity",
+        "race",
+        "geography",
         "age"
       ]
     }
