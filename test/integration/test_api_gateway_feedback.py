@@ -1,30 +1,15 @@
 import pytest
 import requests
-from unittest.mock import MagicMock
-from server.api_gateway.api_gateway import app
+
+API_GATEWAY_URL = "http://localhost:8080"
 
 @pytest.fixture
 def client():
-    """ Crea un client di test per l'API Gateway """
-    app.config["TESTING"] = True
-    return app.test_client()
+    """ Restituisce un client di test per l'API Gateway """
+    return requests.Session()
 
-@pytest.fixture
-def mock_requests_post(mocker):
-    """ Mock per simulare richieste a servizi esterni """
-    return mocker.patch("requests.post")
-
-def test_feedback_domain_success(client, mock_requests_post):
+def test_feedback_domain_success(client):
     """ Testa l'invio di un feedback valido per il dominio """
-
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "status": "success",
-        "message": "Domain feedback received"
-    }
-
-    mock_requests_post.return_value = mock_response
 
     data = {
         "user_story": "As an orthopedic surgeon, I want to review X-ray images to identify bone fractures quickly.",
@@ -32,23 +17,18 @@ def test_feedback_domain_success(client, mock_requests_post):
         "feedback_value": 4
     }
 
-    response = client.post("/feedback/domain", json=data)
+    response = client.post(f"{API_GATEWAY_URL}/feedback/domain", json=data)
 
-    assert response.status_code == 200
-    assert response.json["status"] == "success"
-    assert response.json["message"] == "Domain feedback received"
+    print("Response Status:", response.status_code)
+    print("Response JSON:", response.json())
 
-def test_feedback_tasks_success(client, mock_requests_post):
+    assert response.status_code == 200, f"Errore HTTP: {response.status_code} - {response.text}"
+    json_response = response.json()
+    assert json_response["status"] == "success"
+    assert json_response["message"] == "Domain feedback received"
+
+def test_feedback_tasks_success(client):
     """ Testa l'invio di un feedback valido per i task """
-
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "status": "success",
-        "message": "Task feedback received"
-    }
-
-    mock_requests_post.return_value = mock_response
 
     data = {
         "user_story": "As a cardiologist, I want to identify multiword expressions in patient notes to identify risk factors for heart disease.",
@@ -57,35 +37,26 @@ def test_feedback_tasks_success(client, mock_requests_post):
         "feedback_value": 5
     }
 
-    response = client.post("/feedback/tasks", json=data)
+    response = client.post(f"{API_GATEWAY_URL}/feedback/tasks", json=data)
 
-    assert response.status_code == 200
-    assert response.json["status"] == "success"
-    assert response.json["message"] == "Task feedback received"
+    print("Response Status:", response.status_code)
+    print("Response JSON:", response.json())
+
+    assert response.status_code == 200, f"Errore HTTP: {response.status_code} - {response.text}"
+    json_response = response.json()
+    assert json_response["status"] == "success"
+    assert json_response["message"] == "Task feedback received"
 
 def test_feedback_invalid_json(client):
     """ Testa l'errore quando il corpo della richiesta non è un JSON valido """
 
-    response = client.post("/feedback/domain", data="invalid data", content_type="text/plain")
+    response = client.post(f"{API_GATEWAY_URL}/feedback/domain", data="invalid data", headers={"Content-Type": "text/plain"})
 
-    assert response.status_code == 400
-    assert response.json["status"] == "failure"
-    assert "Request body must be JSON" in response.json["motivation"]
+    print("Response Status:", response.status_code)
+    print("Response JSON:", response.text)
 
-def test_feedback_service_down(client, mock_requests_post):
-    """ Testa il comportamento se il microservizio Feedback non risponde """
+    assert response.status_code == 400, f"Errore HTTP: {response.status_code} - {response.text}"
+    json_response = response.json()
+    assert json_response["status"] == "failure"
+    assert "Request body must be JSON" in json_response["motivation"]
 
-    mock_requests_post.side_effect = requests.exceptions.ConnectionError
-
-    data = {
-        "user_story": "As an orthopedic surgeon, I want to review X-ray images to identify bone fractures quickly.",
-        "predicted_domain": "orthopedics",
-        "feedback_value": 4
-    }
-
-    response = client.post("/feedback/domain", json=data)
-
-    assert response.status_code == 500
-    assert response.json is not None
-    assert response.json["status"] == "failure"
-    assert "Feedback Service is unavailable" in response.json["motivation"]

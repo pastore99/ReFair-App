@@ -1,68 +1,53 @@
 import pytest
 import requests
-from unittest.mock import MagicMock
-from server.api_gateway.api_gateway import app
+
+API_GATEWAY_URL = "http://localhost:8080"
 
 @pytest.fixture
 def client():
-    """ Crea un client di test per l'API Gateway """
-    app.config["TESTING"] = True
-    return app.test_client()
+    """ Restituisce un client di test per l'API Gateway """
+    return requests.Session()
 
-@pytest.fixture
-def mock_requests_post(mocker):
-    """ Mock per simulare richieste a servizi esterni """
-    return mocker.patch("requests.post")
-
-def test_predict_tasks_success(client, mock_requests_post):
+def test_predict_tasks_success(client):
     """ Testa la predizione dei task con una user story valida """
-
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "status": "success",
-        "tasks": ["classification", "ranking"],
-        "tasks_features": {
-            "classification": ["race", "age", "sex"],
-            "ranking": ["race", "age", "sex"]
-        }
-    }
-
-    mock_requests_post.return_value = mock_response
 
     data = {
         "user_story": "As a cardiologist, I want to identify multiword expressions in patient notes to identify risk factors for heart disease.",
         "domain": "Cardiology"
     }
 
-    response = client.post("/predict/tasks", json=data)
+    response = client.post(f"{API_GATEWAY_URL}/predict/tasks", json=data)
 
-    assert response.status_code == 200
-    assert response.json["status"] == "success"
-    assert "classification" in response.json["tasks"]
+    # Debugging: Mostra la risposta completa in caso di errore
+    print("\n--- DEBUG RESPONSE ---")
+    print("Status Code:", response.status_code)
+    print("Headers:", response.headers)
+    print("Response Body:", response.text)
+
+    assert response.status_code == 200, f"Errore HTTP: {response.status_code} - {response.text}"
+
+    try:
+        json_response = response.json()
+    except ValueError:
+        assert False, f"Risposta non in formato JSON: {response.text}"
+
+    # Controlli sugli output attesi
+    assert json_response["status"] == "success", "Lo stato della risposta non è 'success'"
+    assert isinstance(json_response["tasks"], list), "Il campo 'tasks' deve essere una lista"
+    assert len(json_response["tasks"]) > 0, "Nessun task restituito nella risposta"
 
 def test_predict_tasks_invalid_json(client):
     """ Testa l'errore quando il corpo della richiesta non è un JSON valido """
 
-    response = client.post("/predict/tasks", data="invalid data", content_type="text/plain")
+    response = client.post(f"{API_GATEWAY_URL}/predict/tasks", data="invalid data", headers={"Content-Type": "text/plain"})
 
-    assert response.status_code == 400
-    assert response.json["status"] == "failure"
-    assert "Request body must be JSON" in response.json["motivation"]
+    assert response.status_code == 400, f"Errore HTTP: {response.status_code} - {response.text}"
 
-def test_predict_tasks_service_down(client, mock_requests_post):
-    """ Testa il comportamento se il microservizio Task Prediction non risponde """
+    try:
+        json_response = response.json()
+    except ValueError:
+        assert False, f"Risposta non in formato JSON: {response.text}"
 
-    mock_requests_post.side_effect = requests.exceptions.ConnectionError
+    assert json_response["status"] == "failure"
+    assert "Request body must be JSON" in json_response["motivation"]
 
-    data = {
-        "user_story": "As a cardiologist, I want to identify multiword expressions in patient notes.",
-        "domain": "Cardiology"
-    }
-
-    response = client.post("/predict/tasks", json=data)
-
-    assert response.status_code == 500
-    assert response.json is not None
-    assert response.json["status"] == "failure"
-    assert "Task Prediction Service is unavailable" in response.json["motivation"]

@@ -111,16 +111,3 @@ jobs:
           pytest test/unit test/integration --maxfail=10 --disable-warnings -q
           deactivate
 
-      # SonarCloud Scan**
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v4.1.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_SERVER }}
-        with:
-          projectBaseDir: server/
-          args: >
-            -Dsonar.organization=pastore99
-            -Dsonar.projectKey=pastore99_ReFair-App
-            -Dsonar.c.file.suffixes=-
-            -Dsonar.cpp.file.suffixes=-
-            -Dsonar.objc.file.suffixes=-

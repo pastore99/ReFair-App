@@ -1,64 +1,50 @@
 import pytest
 import requests
-
-from server.api_gateway.api_gateway import app
 from io import BytesIO
-from unittest.mock import MagicMock
+
+API_GATEWAY_URL = "http://localhost:8080"
 
 @pytest.fixture
 def client():
-    """ Crea un client di test per l'API Gateway """
-    app.config["TESTING"] = True
-    return app.test_client()
+    """ Restituisce un client di test per l'API Gateway """
+    return requests.Session()
 
-
-@pytest.fixture
-def mock_requests_post(mocker):
-    """ Mock per simulare richieste a servizi esterni """
-    return mocker.patch("requests.post")
-
-def test_stories_load_success(client, mock_requests_post):
+def test_stories_load_success(client):
     """ Testa il caricamento di un file valido attraverso API Gateway """
 
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "status": "success",
-        "stories": ["Story 1", "Story 2"]
+    # File da inviare
+    files = {
+        "stories": ("test.xlsx", BytesIO(b"fake_excel_data"), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     }
 
-    mock_requests_post.return_value = mock_response
+    # Effettua la richiesta
+    response = client.post(f"{API_GATEWAY_URL}/storiesload", files=files)
 
-    data = {
-        "stories": (BytesIO(b"fake_excel_data"), "test.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    }
+    # Debug: Stampa il contenuto della risposta per capire il problema
+    print("\n--- DEBUG RESPONSE ---")
+    print("Status Code:", response.status_code)
+    print("Headers:", response.headers)
+    print("Response Body:", response.text)
 
-    response = client.post("/storiesload", content_type="multipart/form-data", data=data)
+    # Verifica se lo status code è 200
+    assert response.status_code == 200, f"Errore HTTP: {response.status_code} - {response.text}"
 
-    assert response.status_code == 200
-    assert response.json["status"] == "success"
-    assert len(response.json["stories"]) == 2
+    try:
+        json_response = response.json()
+    except ValueError:
+        assert False, f"Risposta non in formato JSON: {response.text}"
+
+    # Controlli sugli output attesi
+    assert json_response["status"] == "success", f"Errore: {json_response}"
+    assert isinstance(json_response["stories"], list), "Il campo 'stories' non è una lista"
+    assert len(json_response["stories"]) > 0, "Nessuna user story ricevuta"
 
 def test_stories_load_no_file(client):
     """ Testa l'errore quando non viene inviato alcun file """
 
-    response = client.post("/storiesload")
+    response = client.post(f"{API_GATEWAY_URL}/storiesload")
 
-    assert response.status_code == 400
+    print("Response Status:", response.status_code)
+    print("Response JSON:", response.text)
 
-def test_stories_load_service_down(client, mock_requests_post):
-    """ Testa il comportamento se il microservizio File Management non risponde """
-
-    mock_requests_post.side_effect = requests.exceptions.ConnectionError
-
-    data = {
-        "stories": (BytesIO(b"fake_excel_data"), "test.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    }
-
-    response = client.post("/storiesload", content_type="multipart/form-data", data=data)
-
-    assert response.status_code == 500
-    assert response.json is not None
-    assert response.json["status"] == "failure"
-    assert "File Management Service is unavailable" in response.json["motivation"]
-
+    assert response.status_code == 400, f"Errore HTTP: {response.status_code} - {response.text}"

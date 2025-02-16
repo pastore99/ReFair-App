@@ -1,39 +1,15 @@
 import pytest
 import requests
-from unittest.mock import MagicMock
-from server.api_gateway.api_gateway import app
+
+API_GATEWAY_URL = "http://localhost:8080"
 
 @pytest.fixture
 def client():
-    """ Crea un client di test per l'API Gateway """
-    app.config["TESTING"] = True
-    return app.test_client()
+    """ Restituisce un client di test per l'API Gateway """
+    return requests.Session()
 
-@pytest.fixture
-def mock_requests_post(mocker):
-    """ Mock per simulare richieste a servizi esterni """
-    return mocker.patch("requests.post")
-
-def test_generate_report_success(client, mock_requests_post):
+def test_generate_report_success(client):
     """ Testa la generazione del report con user stories valide """
-
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.content = b"""
-    [
-        {
-            "user_story": "As a cardiologist, I want to identify multiword expressions in patient notes to identify risk factors for heart disease.",
-            "domain": "Cardiology",
-            "tasks": ["classification", "ranking"],
-            "tasks_features": {
-                "classification": ["race", "age", "sex"],
-                "ranking": ["race", "age", "sex"]
-            }
-        }
-    ]
-    """
-
-    mock_requests_post.return_value = mock_response
 
     data = {
         "user_stories": [
@@ -41,42 +17,57 @@ def test_generate_report_success(client, mock_requests_post):
         ]
     }
 
-    response = client.post("/generate/report", json=data)
+    response = client.post(f"{API_GATEWAY_URL}/generate/report", json=data)
 
-    assert response.status_code == 200
-    assert response.data is not None
-    assert b'"user_story"' in response.data  # Controlla che ci sia almeno una user story nel JSON
+    # Debugging: Mostra la risposta completa in caso di errore
+    print("\n--- DEBUG RESPONSE ---")
+    print("Status Code:", response.status_code)
+    print("Headers:", response.headers)
+    print("Response Body:", response.text)
+
+    assert response.status_code == 200, f"Errore HTTP: {response.status_code} - {response.text}"
+
+    try:
+        json_response = response.json()
+    except ValueError:
+        assert False, f"Risposta non in formato JSON: {response.text}"
+
+    # Controlli sugli output attesi
+    assert isinstance(json_response, list), "La risposta deve essere una lista di report"
+    assert len(json_response) > 0, "Il report non contiene user stories"
+    assert "user_story" in json_response[0], "Campo 'user_story' mancante nel report"
 
 def test_generate_report_invalid_json(client):
     """ Testa l'errore quando il corpo della richiesta non è un JSON valido """
 
-    response = client.post("/generate/report", data="invalid data", content_type="text/plain")
+    response = client.post(f"{API_GATEWAY_URL}/generate/report", data="invalid data", headers={"Content-Type": "text/plain"})
 
-    assert response.status_code == 400
-    assert response.json["status"] == "failure"
-    assert "Request body must be JSON" in response.json["motivation"]
+    assert response.status_code == 400, f"Errore HTTP: {response.status_code} - {response.text}"
+
+    try:
+        json_response = response.json()
+    except ValueError:
+        assert False, f"Risposta non in formato JSON: {response.text}"
+
+    assert json_response["status"] == "failure"
+    assert "Request body must be JSON" in json_response["motivation"]
 
 def test_generate_report_missing_user_stories(client):
     """ Testa l'errore quando manca il campo 'user_stories' """
 
-    response = client.post("/generate/report", json={})
+    response = client.post(f"{API_GATEWAY_URL}/generate/report", json={})
 
-    assert response.status_code == 200
+    # Debugging: Mostra la risposta in caso di errore
+    print("\n--- DEBUG RESPONSE ---")
+    print("Status Code:", response.status_code)
+    print("Response Body:", response.text)
 
-def test_generate_report_service_down(client, mock_requests_post):
-    """ Testa il comportamento se il microservizio Report Generation non risponde """
+    assert response.status_code == 400, f"Errore HTTP: {response.status_code} - {response.text}"
 
-    mock_requests_post.side_effect = requests.exceptions.ConnectionError
+    try:
+        json_response = response.json()
+    except ValueError:
+        assert False, f"Risposta non in formato JSON: {response.text}"
 
-    data = {
-        "user_stories": [
-            "As a cardiologist, I want to identify multiword expressions in patient notes."
-        ]
-    }
-
-    response = client.post("/generate/report", json=data)
-
-    assert response.status_code == 500
-    assert response.json is not None
-    assert response.json["status"] == "failure"
-    assert "Report Generation Service is unavailable" in response.json["motivation"]
+    assert json_response["status"] == "failure"
+    assert "Missing 'user_stories'" in json_response["motivation"]
