@@ -5,12 +5,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 class TestFeedbackSystem:
-
-    @pytest.fixture
-    def driver(self, driver_with_options):
-        """ Restituisce il WebDriver configurato """
-        return driver_with_options
-
     def test_feedback_tc_1(self, driver, load_tc_5_fixture):
         """
         Feedback_TC_1: VD1, VT1 (Success)
