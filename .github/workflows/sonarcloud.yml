@@ -42,21 +42,12 @@ jobs:
       - name: Start all microservices
         run: |
           source server/envs/microservices_env/bin/activate
-          for service in server/microservices/*; do
-            if [ -d "$service" ]; then
-              service_script="$service/$(basename $service).py"
-              if [ -f "$service_script" ]; then
-                echo "🔄 Starting $service_script..."
-                nohup python "$service_script" > "server/microservices/$(basename $service).log" 2>&1 &
-                sleep 5
-                if ! pgrep -f "$service_script" > /dev/null; then
-                  echo "❌ ERROR: $service_script failed to start!"
-                  echo ">>> LOG OUTPUT <<<"
-                  cat "server/microservices/$(basename $service).log"
-                  exit 1
-                fi
-                echo "✅ $service_script started successfully"
-              fi
+          for service_script in server/microservices/*.py; do
+            if [ -f "$service_script" ]; then
+              echo "Starting $service_script..."
+              nohup python "$service_script" > "${service_script%.py}.log" 2>&1 &
+              sleep 5
+              echo "$service_script started"
             fi
           done
           deactivate
@@ -100,19 +91,22 @@ jobs:
           pip install psutil
           deactivate
 
-      # Start Monitor dei Microservizi**
       - name: Check Microservices Status
         run: |
           echo "Verifying if microservices are running..."
           sleep 5
-          for service in server/microservices/*; do
-            if [ -d "$service" ]; then
-              service_name=$(basename "$service")
-              if ! pgrep -f "$service_name.py" > /dev/null; then
-                echo "❌ Microservice $service_name is not running!"
-                cat "$service.log"
-                exit 1
+          for service_script in server/microservices/*.py; do
+            service_name=$(basename "$service_script" .py)
+            if ! pgrep -f "$service_script" > /dev/null; then
+              echo "Microservice $service_name is not running!"
+              if [ -f "${service_script%.py}.log" ]; then
+                cat "${service_script%.py}.log"
+              else
+                echo "⚠No log file found for $service_name"
               fi
+              exit 1
+            else
+              echo "Microservice $service_name is running."
             fi
           done
 
