@@ -79,7 +79,10 @@ jobs:
         working-directory: ./server
 
       - name: Unzip downloaded file
-        run: unzip ./downloads/glove6b100dtxt.zip -d ./utils/models
+        run: |
+          mkdir -p ./server/utils/models  # Assicuriamoci che la cartella esista
+          unzip ./downloads/glove6b100dtxt.zip -d ./server/utils/models/
+          ls -l ./server/utils/models/  # Debug: mostra i file nella cartella
         working-directory: ./server
 
       # **Unit Test Environment**
