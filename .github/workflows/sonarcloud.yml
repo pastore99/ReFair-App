@@ -97,12 +97,20 @@ jobs:
           deactivate
 
       # Start Monitor dei Microservizi**
-      - name: Start microservice monitor
+      - name: Check Microservices Status
         run: |
-          source server/envs/microservices_env/bin/activate
-          nohup python server/scripts/monitor_microservices.py > monitor.log 2>&1 &
-          deactivate
-          cat monitor.log
+          echo "Verifying if microservices are running..."
+          sleep 5
+          for service in server/microservices/*; do
+            if [ -d "$service" ]; then
+              service_name=$(basename "$service")
+              if ! pgrep -f "$service_name.py" > /dev/null; then
+                echo "❌ Microservice $service_name is not running!"
+                cat "$service.log"
+                exit 1
+              fi
+            fi
+          done
 
       # Esegui Test**
       - name: Run Unit Tests
