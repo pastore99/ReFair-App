@@ -82,7 +82,6 @@ jobs:
         run: |
           mkdir -p ./server/utils/models  # Assicuriamoci che la cartella esista
           unzip -o ./downloads/glove6b100dtxt.zip -d ./server/utils/models/
-          mv ./server/utils/models/glove.6B.100d.txt ./server/utils/models/glove.6B.100d.txt  # Verifica che il nome sia giusto
           ls -l ./server/utils/models/  # Debug: Mostra il contenuto della cartella
         working-directory: ./server
 
