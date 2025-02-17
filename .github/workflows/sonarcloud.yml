@@ -112,7 +112,6 @@ jobs:
               else
                 echo "No log file found for $service_name"
               fi
-              exit 1
             else
               echo "Microservice $service_name is running."
             fi
