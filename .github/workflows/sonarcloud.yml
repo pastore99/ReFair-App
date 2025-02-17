@@ -49,9 +49,12 @@ jobs:
                 echo "Starting $service_script..."
                 nohup python "$service_script" > "$service.log" 2>&1 &
                 sleep 5
-                echo "$service_script started"
-              else
-                echo "Skipping $service (no matching .py file)"
+                if ! pgrep -f "$service_script" > /dev/null; then
+                  echo "❌ ERROR: $service_script failed to start!"
+                  cat "$service.log"
+                  exit 1
+                fi
+                echo "✅ $service_script started successfully"
               fi
             fi
           done
