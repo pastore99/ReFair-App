@@ -90,9 +90,15 @@ class TestReport:
                 # Rimuove i newline alla fine delle user_story in entrambi i file
                 for item in report:
                     item["user_story"] = item["user_story"].strip()
+                    if "tasks_features" in item:
+                        for key in item["tasks_features"]:
+                            item["tasks_features"][key] = sorted(item["tasks_features"][key])
 
                 for item in oracle_data:
                     item["user_story"] = item["user_story"].strip()
+                    if "tasks_features" in item:
+                        for key in item["tasks_features"]:
+                            item["tasks_features"][key] = sorted(item["tasks_features"][key])
 
                 assert report == oracle_data, "the report does not match the oracle data"
 
@@ -135,6 +141,19 @@ class TestReport:
             with open(oracle, 'r') as file, open(dowloaded_file, 'r') as file1:
                 oracle_data = json.load(file)
                 report = json.load(file1)
+
+                # Rimuove i newline alla fine delle user_story in entrambi i file
+                for item in report:
+                    item["user_story"] = item["user_story"].strip()
+                    if "tasks_features" in item:
+                        for key in item["tasks_features"]:
+                            item["tasks_features"][key] = sorted(item["tasks_features"][key])
+
+                for item in oracle_data:
+                    item["user_story"] = item["user_story"].strip()
+                    if "tasks_features" in item:
+                        for key in item["tasks_features"]:
+                            item["tasks_features"][key] = sorted(item["tasks_features"][key])
 
                 assert report == oracle_data, "the report does not match the oracle data"
 

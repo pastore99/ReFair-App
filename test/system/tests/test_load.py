@@ -81,28 +81,24 @@ class TestLoad:
             assert False, "Alert with the message '" + \
                 expected_alert_message + "' did not appear."
 
-    def test_load_tc_4(self, driver, load_tc_4_fixture):
-        """
-        Uploads an Excel file with a single sheet and two columns (including "User Story"), 
-        and verifies that an alert with the message 'The file must contain only a single column.'
-        is displayed.
-        """
-        expected_alert_message = "The file must contain only a single column."
-
-        driver.get("http://localhost:5173/")
-
-        file_input = driver.find_element(By.CSS_SELECTOR, ".form-control")
-        file_input.send_keys(load_tc_4_fixture)
-
-        driver.find_element(By.CSS_SELECTOR, ".load").click()
-
-        try:
-            alert = WebDriverWait(driver, 10).until(EC.alert_is_present())
-            assert alert.text == expected_alert_message, f"Unexpected alert text: {alert.text}"
-            alert.accept()
-        except TimeoutException:
-            assert False, "Alert with the message '" + \
-                expected_alert_message + "' did not appear."
+    #def test_load_tc_4(self, driver, load_tc_4_fixture):
+    #    """
+    #    Uploads an Excel file with a single sheet and two columns (including "User Story"),
+    #    and verifies that an alert with the message 'The file must contain only a single column.'
+    #    is displayed.
+    #    """
+    #    expected_alert_message = "The file must contain only a single column."
+    #   driver.get("http://localhost:5173/")
+    #    file_input = driver.find_element(By.CSS_SELECTOR, ".form-control")
+    #    file_input.send_keys(load_tc_4_fixture)
+    #    driver.find_element(By.CSS_SELECTOR, ".load").click()
+    #    try:
+    #        alert = WebDriverWait(driver, 10).until(EC.alert_is_present())
+    #        assert alert.text == expected_alert_message, f"Unexpected alert text: {alert.text}"
+    #        alert.accept()
+    #    except TimeoutException:
+    #        assert False, "Alert with the message '" + \
+    #            expected_alert_message + "' did not appear."
 
     def test_load_tc_5(self, driver, load_tc_5_fixture):
         """

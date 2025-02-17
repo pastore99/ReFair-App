@@ -8,24 +8,5 @@
         ],
         "feedback_value": 5,
         "timestamp": "2025-02-01T14:52:07.432626"
-    },
-    {
-        "user_story": "As a cardiologist, I want to identify multiword expressions in patient notes to identify risk factors for heart disease.",
-        "domain": "cardiology",
-        "predicted_tasks": [
-            "Identify Multiword Expressions",
-            "Risk Factor Analysis"
-        ],
-        "feedback_value": 5,
-        "timestamp": "2025-02-01T14:59:29.958796"
-    },
-    {
-        "user_story": "A group of researchers is using abstractive summarization to identify key trends and insights in large sets of biological data, enabling more efficient analysis and interpretation.",
-        "domain": "Biology",
-        "predicted_tasks": [
-            "abstractive summarization"
-        ],
-        "feedback_value": 5,
-        "timestamp": "2025-02-10T18:37:16.890537"
     }
 ]

@@ -56,7 +56,7 @@ class TestAnalyze:
 
             modal_button.click()
         except TimeoutException:
-            print("\n🔴 ERRORE: Il pulsante della modale non è stato trovato.")
+            print("\nERRORE: Il pulsante della modale non è stato trovato.")
             print(driver.page_source)  # Stampiamo il codice HTML attuale per debug
             assert False, "Modal button not found."
 
@@ -69,7 +69,7 @@ class TestAnalyze:
                 lambda d: d.find_elements(By.CSS_SELECTOR, ".mx-4")[1].text.strip() != ""
             )
         except TimeoutException:
-            print("\n🔴 ERRORE: La pagina non ha caricato i dati correttamente.")
+            print("\nERRORE: La pagina non ha caricato i dati correttamente.")
             print(driver.page_source)  # Stampiamo il codice HTML attuale per debug
             assert False, "Data not loaded."
 
@@ -91,5 +91,17 @@ class TestAnalyze:
         with open(oracle, 'r') as file:
             oracle_data = json.load(file)
 
+        print("\nDEBUG: Contenuto dell'oracolo:", oracle_data)  # Stampa il contenuto
+
+        # Se il file JSON è una lista, prendi il primo elemento
+        if isinstance(oracle_data, list):
+            oracle_data = oracle_data[0]
+
+        # Assicurati che il JSON abbia i campi necessari
+        assert "domain" in oracle_data, "Errore: 'domain' non è presente nell'oracolo"
+        assert "tasks_features" in oracle_data, "Errore: 'features' non è presente nell'oracolo"
+
+        # Confronto con l'oracolo
         assert domain == oracle_data['domain'], f"Domain does not match the oracle: expected '{oracle_data['domain']}', got '{domain}'"
-        assert features == oracle_data['features'], "Sensitive features does not match the oracle"
+        assert features == oracle_data['tasks_features'], "Sensitive features do not match the oracle"
+
