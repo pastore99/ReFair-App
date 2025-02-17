@@ -97,12 +97,17 @@ jobs:
           sleep 5
           for service_script in server/microservices/*.py; do
             service_name=$(basename "$service_script" .py)
+
+            if [ "$service_name" == "__init__" ]; then
+              continue
+            fi
+
             if ! pgrep -f "$service_script" > /dev/null; then
               echo "Microservice $service_name is not running!"
               if [ -f "${service_script%.py}.log" ]; then
                 cat "${service_script%.py}.log"
               else
-                echo "⚠No log file found for $service_name"
+                echo "No log file found for $service_name"
               fi
               exit 1
             else
