@@ -244,8 +244,8 @@ class RefairDesktopApp:
                     canvas_frame.destroy()
 
                 data = response.json()
-                if "stories" in data:
-                    stories = data["stories"]
+                if "stories" in data and "stories" in data["stories"]:
+                    stories = data["stories"]["stories"]
                     for story in stories:
                         user_stories.append(story)
 
@@ -279,7 +279,7 @@ class RefairDesktopApp:
         }
 
         try:
-            response = requests.post('http://localhost:8080/storiesload', json=json.dumps(data, indent=4))
+            response = requests.post('http://localhost:8080/generate/report', json=data)
             if response.status_code == 200:
                 file_path_tosave = filedialog.asksaveasfilename(defaultextension=".json",
                                                          filetypes=[("JSON files", "*.json"),

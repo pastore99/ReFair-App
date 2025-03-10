@@ -4,5 +4,17 @@
         "predicted_domain": "Biology",
         "feedback_value": 4,
         "timestamp": "2025-02-15T12:18:16.960761"
+    },
+    {
+        "user_story": "As a social worker, I want to use neural gas to analyze and classify social work data, such as client needs and service utilization, so that I can improve social work practice and service delivery.",
+        "predicted_domain": "Social Work",
+        "feedback_value": 5,
+        "timestamp": "2025-02-24T21:42:50.540868"
+    },
+    {
+        "user_story": "As a librarian, I want to use artificial neural networks to analyze user behavior and improve library services, so that we can provide a better experience for our patrons.",
+        "predicted_domain": "Library",
+        "feedback_value": 5,
+        "timestamp": "2025-02-25T09:51:43.599096"
     }
 ]

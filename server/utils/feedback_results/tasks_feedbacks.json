@@ -8,5 +8,23 @@
         ],
         "feedback_value": 5,
         "timestamp": "2025-02-01T14:52:07.432626"
+    },
+    {
+        "user_story": "As a social worker, I want to use neural gas to analyze and classify social work data, such as client needs and service utilization, so that I can improve social work practice and service delivery.",
+        "domain": "Social Work",
+        "predicted_tasks": [
+            "clustering"
+        ],
+        "feedback_value": 5,
+        "timestamp": "2025-02-24T21:42:52.609923"
+    },
+    {
+        "user_story": "As a librarian, I want to use artificial neural networks to analyze user behavior and improve library services, so that we can provide a better experience for our patrons.",
+        "domain": "Library",
+        "predicted_tasks": [
+            "clustering"
+        ],
+        "feedback_value": 5,
+        "timestamp": "2025-02-25T09:51:45.677576"
     }
 ]
